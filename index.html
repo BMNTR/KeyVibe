@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
+    <title>KeyVibe - Type Your Vibe</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    
+    <!-- SEO -->
+    <meta name="description" content="KeyVibe - Free online typing speed test. Practice typing, race friends in multiplayer mode, and climb the global leaderboard.">
+    <meta property="og:title" content="KeyVibe - Type Your Vibe">
+    <meta property="og:description" content="Test your typing speed, race friends, and climb the leaderboard!">
+</head>
+<body>
+    <div class="app">
+        <!-- Login Modal -->
+        <div class="modal-backdrop" id="login-modal">
+            <div class="modal-card">
+                <button class="modal-close" onclick="Auth.closeModal()" title="Continue as Guest">✕</button>
+                <div class="modal-logo">
+                    <img src="img/logo.png" alt="KeyVibe">
+                </div>
+                <div class="modal-title">Key<span>Vibe</span></div>
+                <div class="modal-sub">Type your vibe. Race your tribe. Own the leaderboard.</div>
+                <div class="modal-tabs">
+                    <button class="modal-tab active" id="tab-signin" onclick="Auth.switchTab('signin')">Sign In</button>
+                    <button class="modal-tab" id="tab-signup" onclick="Auth.switchTab('signup')">Sign Up</button>
+                </div>
+                
+                <!-- Sign In Form -->
+                <div class="modal-form active" id="form-signin">
+                    <div class="input-grp"><label>Email</label><input type="email" id="si-email" placeholder="yourname@gmail.com" autocomplete="email" enterkeyhint="next"/></div>
+                    <div class="input-grp"><label>Password</label><input type="password" id="si-pass" placeholder="Your password" enterkeyhint="done"/></div>
+                    <div class="modal-err" id="si-err"></div>
+                    <button class="modal-btn" onclick="Auth.login()">Sign In</button>
+                    <button class="guest-link" onclick="Auth.guest()">🚀 Continue as Guest (instant play)</button>
+                </div>
+                
+                <!-- Sign Up Form -->
+                <div class="modal-form" id="form-signup">
+                    <div class="input-grp"><label>Email (Gmail)</label><input type="email" id="su-email" placeholder="yourname@gmail.com" autocomplete="email" enterkeyhint="next"/></div>
+                    <div class="input-grp"><label>Username</label><input type="text" id="su-user" placeholder="Pick a username" autocomplete="off" maxlength="20" enterkeyhint="next"/></div>
+                    <div class="input-grp"><label>Password</label><input type="password" id="su-pass" placeholder="Create a password (min 6 characters)" enterkeyhint="next"/></div>
+                    <div class="input-grp"><label>Confirm Password</label><input type="password" id="su-pass2" placeholder="Confirm your password" enterkeyhint="done"/></div>
+                    <div class="modal-err" id="su-err"></div>
+                    <button class="modal-btn" onclick="Auth.register()">Sign Up</button>
+                    <button class="guest-link" onclick="Auth.guest()">🚀 Continue as Guest (instant play)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pause Overlay -->
+        <div class="overlay pause-overlay" id="pause-overlay" onclick="App.resumePause()">
+            <div class="pause-icon">⏸</div>
+            <div class="pause-title">Paused</div>
+            <div class="pause-sub">Tap anywhere or press any key to continue</div>
+        </div>
+
+        <!-- Result Overlay -->
+        <div class="overlay result-overlay" id="result-overlay">
+            <div class="result-card">
+                <div style="font-size:28px;margin-bottom:6px" id="res-emoji">🎉</div>
+                <div class="res-wpm" id="res-wpm">0</div>
+                <div class="res-label">Words Per Minute</div>
+                <div class="res-grid">
+                    <div class="res-stat"><div class="res-stat-val" id="r-acc" style="color:var(--success)">0%</div><div class="res-stat-label">Accuracy</div></div>
+                    <div class="res-stat"><div class="res-stat-val" id="r-chars" style="color:var(--accent)">0</div><div class="res-stat-label">Correct</div></div>
+                    <div class="res-stat"><div class="res-stat-val" id="r-err" style="color:var(--danger)">0</div><div class="res-stat-label">Errors</div></div>
+                </div>
+                <div class="xp-pill" id="r-msg"></div>
+                <div style="font-size:11px;color:var(--muted);margin:4px 0" id="r-combo-info"></div>
+                <div class="btn-row">
+                    <button class="btn btn-p" onclick="App.newTest();App.closeResult()">Try Again</button>
+                    <button class="btn btn-s" onclick="App.closeResult();App.goTab('leaderboard')">Leaderboard</button>
+                    <button class="btn btn-share" onclick="Share.open()">📤 Share</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Share Overlay -->
+        <div class="share-overlay" id="share-overlay">
+            <div class="share-card">
+                <div style="font-size:22px;font-weight:800;margin-bottom:14px">Share Your Vibe</div>
+                <div class="share-img-preview" id="share-img-preview">
+                    <div style="font-size:42px;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace" id="share-wpm">0</div>
+                    <div style="font-size:11px;color:var(--muted);text-transform:uppercase">WPM</div>
+                    <div class="stats-mini">
+                        <div class="stat-mini"><div class="stat-mini-val" id="share-acc" style="color:var(--success)">0%</div><div class="stat-mini-label">Accuracy</div></div>
+                        <div class="stat-mini"><div class="stat-mini-val" id="share-combo" style="color:var(--warning)">0</div><div class="stat-mini-label">Max Combo</div></div>
+                    </div>
+                    <div class="share-watermark">keyvibe.app</div>
+                </div>
+                <div class="share-btns">
+                    <button class="btn btn-p" onclick="Share.twitter()">🐦 Twitter</button>
+                    <button class="btn btn-s" onclick="Share.copy()">📋 Copy Text</button>
+                    <button class="btn btn-s" onclick="Share.download()">💾 Download PNG</button>
+                    <button class="btn btn-s" onclick="Share.close()">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ad Banner -->
+        <div class="ad-slot ad-banner">Advertisement (728×90)</div>
+
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <img src="img/logo.png" alt="KeyVibe" style="width:100%;height:100%;object-fit:contain">
+                </div>
+                <div class="logo-text">Key<span>Vibe</span></div>
+            </div>
+            <div class="nav">
+                <button class="nav-btn active" onclick="App.goTab('practice',this)">Type</button>
+                <button class="nav-btn" onclick="App.goTab('multiplayer',this)">Race <span class="new-badge">NEW</span></button>
+                <button class="nav-btn" onclick="App.goTab('leaderboard',this)">Leaderboard</button>
+                <button class="nav-btn" onclick="App.goTab('profile',this)">Profile</button>
+            </div>
+            <div class="user-chip" onclick="Auth.signout()">
+                <div class="u-avatar" id="h-avatar">
+                    <img id="h-avatar-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%"/>
+                    <span id="h-avatar-text">G</span>
+                </div>
+                <div class="u-name" id="h-name">Guest</div>
+            </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="stat-card"><div class="stat-val" id="sb-best">0</div><div class="stat-label">Best WPM</div></div>
+            <div class="stat-card"><div class="stat-val" id="sb-avg">0</div><div class="stat-label">Avg WPM</div></div>
+            <div class="stat-card"><div class="stat-val" id="sb-tests">0</div><div class="stat-label">Tests</div></div>
+            <div class="stat-card"><div class="stat-val" id="sb-rank" style="font-size:12px;line-height:1.3;padding-top:4px">—</div><div class="stat-label">Rank</div></div>
+        </div>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <div class="content-col">
+                <!-- Type Tab (Practice) -->
+                <div id="tab-practice" class="tab-c active">
+                    <div class="mode-tabs">
+                        <button class="mode-tab active" id="m-practice" onclick="App.setMode('practice')">📝 Type</button>
+                        <button class="mode-tab" id="m-ranked" onclick="App.setMode('ranked')">⚡ Ranked</button>
+                    </div>
+
+                    <!-- Practice Mode -->
+                    <div id="mode-practice">
+                        <div class="panel">
+                            <div class="toolbar">
+                                <div class="tb-group">
+                                    <button class="tb-btn active" onclick="App.setDifficulty('easy',this)">Easy</button>
+                                    <button class="tb-btn" onclick="App.setDifficulty('medium',this)">Medium</button>
+                                    <button class="tb-btn" onclick="App.setDifficulty('hard',this)">Hard</button>
+                                </div>
+                                <div class="tb-sep"></div>
+                                <div class="tb-group">
+                                    <button class="tb-btn active" id="d30" onclick="App.setDuration(30,this)">30s</button>
+                                    <button class="tb-btn" id="d60" onclick="App.setDuration(60,this)">60s</button>
+                                    <button class="tb-btn" id="d120" onclick="App.setDuration(120,this)">2m</button>
+                                </div>
+                                <div class="timer-badge" id="timer-pill">30s</div>
+                            </div>
+                            <div class="progress-bar"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+                            <div class="text-box-container">
+                                <div class="text-box" id="text-box" tabindex="0">
+                                    <div class="live-row">
+                                        <span class="live-stat">WPM <strong id="live-wpm">—</strong></span>
+                                        <span class="live-stat">ACC <strong id="live-acc">—</strong></span>
+                                    </div>
+                                    <div class="words-wrap" id="words-wrap"></div>
+                                    <div class="combo-display">
+                                        <div class="combo-counter" id="combo-counter">🔥 x0</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="hint" id="hint">Click or tap the text box to start typing</div>
+                            <div class="caps-warn" id="caps-warn">⚠ Caps Lock is on</div>
+                        </div>
+
+                        <div class="ad-slot ad-inline">Advertisement (728×120)</div>
+
+                        <div class="panel">
+                            <div class="panel-title">Recent Results</div>
+                            <div id="hist-list"><div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">No tests yet — start typing above!</div></div>
+                        </div>
+                    </div>
+
+                    <!-- Ranked Mode -->
+                    <div id="mode-ranked" style="display:none">
+                        <div class="ranked-info">
+                            <strong>⚡ Ranked Mode</strong> — Your best result is submitted to the Global Leaderboard.<br>
+                            Login required. No pausing. 60-second timed test. Give it your best shot!
+                        </div>
+                        <div class="panel">
+                            <div class="toolbar">
+                                <span style="font-size:11px;color:var(--muted)">Difficulty locked to</span>
+                                <span style="font-size:11px;color:var(--accent);font-weight:600">Medium</span>
+                                <div class="timer-badge" style="margin-left:auto" id="ranked-timer-pill">60s</div>
+                            </div>
+                            <div class="progress-bar"><div class="progress-fill" id="r-prog" style="width:0%"></div></div>
+                            <div class="text-box-container">
+                                <div class="text-box" id="r-text-box" tabindex="0">
+                                    <div class="live-row">
+                                        <span class="live-stat">WPM <strong id="r-live-wpm">—</strong></span>
+                                        <span class="live-stat">ACC <strong id="r-live-acc">—</strong></span>
+                                    </div>
+                                    <div class="words-wrap" id="r-words-wrap"></div>
+                                    <div class="combo-display">
+                                        <div class="combo-counter" id="r-combo-counter">🔥 x0</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="hint" id="r-hint">Click or tap the text box to start typing</div>
+                            <div class="caps-warn" id="r-caps-warn">⚠ Caps Lock is on</div>
+                        </div>
+                        <div class="ad-slot ad-inline">Advertisement (728×120)</div>
+                        <div class="panel">
+                            <div class="panel-title">Ranked History</div>
+                            <div id="r-hist-list"><div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">No ranked matches yet.</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Race Tab (Multiplayer) -->
+                <div id="tab-multiplayer" class="tab-c">
+                    <div class="panel">
+                        <div class="panel-title">🌐 Race Arena</div>
+                        <div class="mp-lobby" id="mp-lobby">
+                            <h3>Race Against Friends!</h3>
+                            <p style="color:var(--muted);font-size:12px;margin-bottom:14px">Create a room or join with a code</p>
+                            <div class="room-actions">
+                                <button class="btn btn-p" onclick="Multiplayer.createRoom()">🏠 Create Room</button>
+                                <div style="display:flex;gap:4px;align-items:center">
+                                    <input class="mp-input" id="mp-room-code" placeholder="ROOM CODE" maxlength="6" autocomplete="off" enterkeyhint="done"/>
+                                    <button class="btn btn-s" onclick="Multiplayer.joinRoom()">Join</button>
+                                </div>
+                            </div>
+                            <div class="mp-room-info" id="mp-room-info">
+                                <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Room Code</div>
+                                <div class="mp-code" id="mp-code-display">—</div>
+                                <div style="font-size:10px;color:var(--muted);margin-top:4px">Share this code with friends</div>
+                                <div class="mp-players" id="mp-players"></div>
+                                <div class="mp-status" id="mp-status">Waiting for players...</div>
+                                <button class="btn btn-p" id="mp-start-btn" onclick="Multiplayer.startRace()" style="margin-top:10px" disabled>Start Race (need 2+ players)</button>
+                            </div>
+                        </div>
+                        <div class="mp-race-area" id="mp-race-area">
+                            <div class="text-box-container">
+                                <div class="text-box" id="mp-text-box" tabindex="0">
+                                    <div class="live-row">
+                                        <span class="live-stat">WPM <strong id="mp-live-wpm">—</strong></span>
+                                        <span class="live-stat">ACC <strong id="mp-live-acc">—</strong></span>
+                                    </div>
+                                    <div class="words-wrap" id="mp-words-wrap"></div>
+                                    <div class="combo-display">
+                                        <div class="combo-counter" id="mp-combo-counter">🔥 x0</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mp-player-progress" id="mp-player-progress"></div>
+                            <div class="hint" id="mp-hint">Race started! Type as fast as you can!</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leaderboard Tab -->
+                <div id="tab-leaderboard" class="tab-c">
+                    <div class="panel">
+                        <div class="panel-title">🏆 Global Leaderboard</div>
+                        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+                            <table class="lb-table">
+                                <thead><tr><th style="width:30px">#</th><th>Player</th><th>Rank</th><th>Best WPM</th><th>Acc%</th><th>Tests</th></tr></thead>
+                                <tbody id="lb-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="ad-slot ad-inline">Advertisement (728×120)</div>
+                </div>
+
+                <!-- Profile Tab -->
+                <div id="tab-profile" class="tab-c">
+                    <div class="panel">
+                        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px">
+                            <div>
+                                <div style="font-size:18px;font-weight:800" id="p-name">—</div>
+                                <div id="p-rank-badge" style="margin-top:4px;display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600"></div>
+                            </div>
+                            <div style="text-align:right">
+                                <div style="font-size:9px;color:var(--muted)">TOTAL XP</div>
+                                <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--accent)" id="p-xp">0</div>
+                            </div>
+                        </div>
+                        <div class="xp-bar"><div class="xp-fill" id="p-xp-fill" style="width:0%"></div></div>
+                        <div class="p-grid">
+                            <div>
+                                <div class="sec-head">Statistics</div>
+                                <div id="p-stats" style="font-size:12px;line-height:2.2"></div>
+                            </div>
+                            <div>
+                                <div class="sec-head">Achievements</div>
+                                <div class="badge-wrap" id="p-badges"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ad-slot ad-inline">Advertisement (728×120)</div>
+                    <div class="panel">
+                        <div class="sec-head">Rank Progression</div>
+                        <div id="p-ranks"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar Ad -->
+            <div class="ad-slot ad-sidebar">Ad (160×600)</div>
+        </div>
+    </div>
+
+    <!-- Floating Controls -->
+    <div class="theme-switcher">
+        <div class="theme-panel" id="theme-panel"></div>
+        <div class="theme-actions">
+            <button class="mute-toggle-btn" id="mute-btn" onclick="Sound.toggle()" title="Mute/Unmute">🔊</button>
+            <button class="theme-toggle-btn" onclick="UI.toggleThemePanel()" title="Change Theme">🎨</button>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Scripts (load in order) -->
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/sound.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/typing-engine.js"></script>
+    <script src="js/multiplayer.js"></script>
+    <script src="js/share.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
