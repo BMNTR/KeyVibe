@@ -39,16 +39,70 @@ class App {
     
     // Create hidden input for mobile keyboard
     static createMobileInput() {
+        // Hapus dulu kalo udah ada
+        const old = document.getElementById('mobile-input');
+        if (old) old.remove();
+        
         const hiddenInput = document.createElement('input');
         hiddenInput.type = 'text';
         hiddenInput.id = 'mobile-input';
-        hiddenInput.style.cssText = 
-            'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none;font-size:16px;';
         hiddenInput.setAttribute('autocomplete', 'off');
         hiddenInput.setAttribute('autocorrect', 'off');
         hiddenInput.setAttribute('autocapitalize', 'off');
         hiddenInput.setAttribute('spellcheck', 'false');
+        hiddenInput.setAttribute('inputmode', 'text');
+        hiddenInput.setAttribute('enterkeyhint', 'done');
+        
+        // Style: kasih posisi fixed tapi tetep bisa di-focus
+        hiddenInput.style.cssText = `
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 1px !important;
+            height: 1px !important;
+            opacity: 0.01 !important;
+            z-index: 9999 !important;
+            font-size: 16px !important;
+            pointer-events: auto !important;
+        `;
+        
         document.body.appendChild(hiddenInput);
+        
+        // Handler pas ada input dari mobile
+        hiddenInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            if (val.length === 0) return;
+            
+            // Ambil karakter terakhir
+            const char = val[val.length - 1];
+            
+            // Clear input biar bisa nerima karakter berikutnya
+            e.target.value = '';
+            
+            // Jangan proses kalo lagi pause
+            if (TypingEngine.state.paused) {
+                TypingEngine.resumePause();
+                return;
+            }
+            
+            // Start typing kalo belum mulai
+            if (!TypingEngine.state.started) {
+                TypingEngine.start();
+            }
+            
+            if (!TypingEngine.state.running) return;
+            
+            // Proses karakter
+            TypingEngine.processChar(char);
+        });
+        
+        // Handle backspace di mobile
+        hiddenInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace') {
+                e.preventDefault();
+                TypingEngine.backspace();
+            }
+        });
     }
     
     // Focus current text box
@@ -64,29 +118,91 @@ class App {
         
         // Focus hidden input for mobile keyboard
         const mobileInput = document.getElementById('mobile-input');
-        if (mobileInput) {
+        if (mobileInput && /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent)) {
             mobileInput.focus();
         }
         
-        // Also focus the visual text box
-        const box = document.getElementById(textBoxId);
-        if (box) {
-            box.focus();
-        }
+        // Update typing engine
+        TypingEngine.currentTextBoxId = textBoxId;
     }
     
     // ============ EVENT LISTENERS ============
     static setupEventListeners() {
-        // Keyboard handler - listen on document for typing
-        document.addEventListener('keydown', (e) => {
-            // Skip if typing in an input field (login, room code, etc)
-            const activeElement = document.activeElement;
+        // Detect mobile
+        const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent);
+        
+        // Text box CLICK handlers
+        document.getElementById('text-box')?.addEventListener('click', (e) => {
+            if (TypingEngine.state.paused) TypingEngine.resumePause();
             
+            TypingEngine.currentTextBoxId = 'text-box';
+            this.currentMode = 'practice';
+            TypingEngine.currentMode = 'practice';
+            
+            // Di mobile, fokus ke hidden input
+            if (isMobile) {
+                e.preventDefault();
+                const mobileInput = document.getElementById('mobile-input');
+                if (mobileInput) {
+                    mobileInput.focus();
+                    mobileInput.click();
+                }
+            } else {
+                document.getElementById('text-box').focus();
+            }
+        });
+        
+        document.getElementById('r-text-box')?.addEventListener('click', (e) => {
+            if (TypingEngine.state.paused) TypingEngine.resumePause();
+            
+            TypingEngine.currentTextBoxId = 'r-text-box';
+            this.currentMode = 'ranked';
+            TypingEngine.currentMode = 'ranked';
+            
+            if (isMobile) {
+                e.preventDefault();
+                const mobileInput = document.getElementById('mobile-input');
+                if (mobileInput) {
+                    mobileInput.focus();
+                    mobileInput.click();
+                }
+            } else {
+                document.getElementById('r-text-box').focus();
+            }
+        });
+        
+        document.getElementById('mp-text-box')?.addEventListener('click', (e) => {
+            if (Multiplayer.room && Multiplayer.room.started) return;
+            
+            TypingEngine.currentTextBoxId = 'mp-text-box';
+            this.currentMode = 'multiplayer';
+            TypingEngine.currentMode = 'multiplayer';
+            
+            if (isMobile) {
+                e.preventDefault();
+                const mobileInput = document.getElementById('mobile-input');
+                if (mobileInput) {
+                    mobileInput.focus();
+                    mobileInput.click();
+                }
+            } else {
+                document.getElementById('mp-text-box').focus();
+            }
+        });
+        
+        // Desktop keyboard handler
+        document.addEventListener('keydown', (e) => {
+            // Di mobile, keyboard events di-handle sama hidden input
+            if (isMobile && document.activeElement?.id !== 'mobile-input') {
+                return;
+            }
+            
+            // Skip if typing in form inputs
+            const activeElement = document.activeElement;
             if (activeElement && 
                 (activeElement.tagName === 'INPUT' || 
                  activeElement.tagName === 'TEXTAREA' ||
                  activeElement.isContentEditable)) {
-                // Kecuali mobile-input (itu buat trigger keyboard)
                 if (activeElement.id !== 'mobile-input') {
                     return;
                 }
@@ -99,46 +215,6 @@ class App {
             if (capsWarn) capsWarn.style.display = isCaps ? 'block' : 'none';
             if (rCapsWarn) rCapsWarn.style.display = isCaps ? 'block' : 'none';
             
-            // Determine which text box
-            let textBoxId = null;
-            
-            if (activeElement && activeElement.classList.contains('text-box')) {
-                textBoxId = activeElement.id;
-            } else if (activeElement && activeElement.id === 'mobile-input') {
-                // Mobile keyboard is active
-                textBoxId = TypingEngine.currentTextBoxId || 
-                           (this.currentMode === 'ranked' ? 'r-text-box' : 
-                            this.currentTab === 'multiplayer' ? 'mp-text-box' : 'text-box');
-            } else if (this.currentTab === 'practice') {
-                textBoxId = this.currentMode === 'ranked' ? 'r-text-box' : 'text-box';
-            } else if (this.currentTab === 'multiplayer') {
-                textBoxId = 'mp-text-box';
-            } else {
-                return;
-            }
-            
-            if (!textBoxId) return;
-            
-            TypingEngine.currentTextBoxId = textBoxId;
-            
-            // Set mode
-            if (textBoxId === 'r-text-box') {
-                this.currentMode = 'ranked';
-                TypingEngine.currentMode = 'ranked';
-            } else if (textBoxId === 'mp-text-box') {
-                this.currentMode = 'multiplayer';
-                TypingEngine.currentMode = 'multiplayer';
-            } else {
-                this.currentMode = 'practice';
-                TypingEngine.currentMode = 'practice';
-            }
-            
-            // Focus visual text box
-            const box = document.getElementById(textBoxId);
-            if (box && document.activeElement !== box) {
-                box.focus();
-            }
-            
             // Tab = restart test
             if (e.key === 'Tab') {
                 e.preventDefault();
@@ -148,7 +224,7 @@ class App {
                 return;
             }
             
-            // Escape = pause (not in ranked)
+            // Escape = pause
             if (e.key === 'Escape') {
                 if (this.currentMode !== 'ranked') {
                     if (TypingEngine.state.running && !TypingEngine.state.paused) {
@@ -160,8 +236,8 @@ class App {
                 return;
             }
             
-            // Single character input
-            if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1) {
+            // Single character (desktop only)
+            if (!isMobile && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1) {
                 e.preventDefault();
                 
                 if (TypingEngine.state.paused) {
@@ -179,110 +255,22 @@ class App {
                 return;
             }
             
-            // Backspace
-            if (e.key === 'Backspace') {
+            // Backspace (desktop only)
+            if (!isMobile && e.key === 'Backspace') {
                 e.preventDefault();
                 TypingEngine.backspace();
             }
         });
         
-        // Mobile input handler - capture input from hidden field
-        document.getElementById('mobile-input')?.addEventListener('input', (e) => {
-            const val = e.target.value;
-            if (val.length === 0) return;
+        // Auto-focus on click anywhere
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('input, textarea, button, select')) return;
+            if (e.target.closest('.modal-backdrop, .overlay, .theme-switcher, .text-box')) return;
             
-            const char = val[val.length - 1];
-            e.target.value = ''; // Clear immediately
-            
-            if (TypingEngine.state.paused) {
-                TypingEngine.resumePause();
-                return;
-            }
-            
-            if (!TypingEngine.state.started) {
-                TypingEngine.start();
-            }
-            
-            if (!TypingEngine.state.running) return;
-            
-            TypingEngine.processChar(char);
-        });
-        
-        // Text box click handlers (MOBILE FIX - trigger keyboard)
-        document.getElementById('text-box')?.addEventListener('click', function(e) {
-            if (TypingEngine.state.paused) TypingEngine.resumePause();
-            const mobileInput = document.getElementById('mobile-input');
-            if (mobileInput) {
-                mobileInput.focus();
-                mobileInput.click();
-            }
-            this.focus();
-            TypingEngine.currentTextBoxId = 'text-box';
-        });
-        
-        document.getElementById('r-text-box')?.addEventListener('click', function(e) {
-            if (TypingEngine.state.paused) TypingEngine.resumePause();
-            const mobileInput = document.getElementById('mobile-input');
-            if (mobileInput) {
-                mobileInput.focus();
-                mobileInput.click();
-            }
-            this.focus();
-            TypingEngine.currentTextBoxId = 'r-text-box';
-        });
-        
-        document.getElementById('mp-text-box')?.addEventListener('click', function(e) {
-            if (Multiplayer.room && Multiplayer.room.started) return;
-            const mobileInput = document.getElementById('mobile-input');
-            if (mobileInput) {
-                mobileInput.focus();
-                mobileInput.click();
-            }
-            this.focus();
-            TypingEngine.currentTextBoxId = 'mp-text-box';
-        });
-        
-        // Touch event for text boxes (extra mobile fix)
-        document.getElementById('text-box')?.addEventListener('touchstart', function(e) {
-            const mobileInput = document.getElementById('mobile-input');
-            if (mobileInput) {
-                mobileInput.focus();
-                mobileInput.click();
-            }
-        });
-        
-        document.getElementById('r-text-box')?.addEventListener('touchstart', function(e) {
-            const mobileInput = document.getElementById('mobile-input');
-            if (mobileInput) {
-                mobileInput.focus();
-                mobileInput.click();
-            }
-        });
-        
-        document.getElementById('mp-text-box')?.addEventListener('touchstart', function(e) {
-            if (Multiplayer.room && Multiplayer.room.started) return;
-            const mobileInput = document.getElementById('mobile-input');
-            if (mobileInput) {
-                mobileInput.focus();
-                mobileInput.click();
-            }
-        });
-        
-        // Auto-focus text box on click anywhere
-        document.addEventListener('click', function(e) {
-            if (e.target.closest('input') && e.target.id !== 'mobile-input') return;
-            if (e.target.closest('textarea')) return;
-            if (e.target.closest('button')) return;
-            if (e.target.closest('select')) return;
-            if (e.target.closest('.modal-backdrop')) return;
-            if (e.target.closest('.overlay')) return;
-            if (e.target.closest('.theme-switcher')) return;
-            if (e.target.closest('.text-box')) return;
-            
-            if (App.currentTab === 'practice' || App.currentTab === 'multiplayer') {
-                const mobileInput = document.getElementById('mobile-input');
-                if (mobileInput) {
-                    mobileInput.focus();
+            if (this.currentTab === 'practice' || this.currentTab === 'multiplayer') {
+                if (isMobile) {
+                    const mobileInput = document.getElementById('mobile-input');
+                    if (mobileInput) mobileInput.focus();
                 }
             }
         });
@@ -424,7 +412,6 @@ class App {
     static resumePause() {
         TypingEngine.resumePause();
         
-        // Re-focus mobile input after resume
         setTimeout(() => {
             const mobileInput = document.getElementById('mobile-input');
             if (mobileInput) mobileInput.focus();
