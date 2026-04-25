@@ -14,37 +14,70 @@ class App {
         const savedTheme = Storage.loadTheme();
         this.setTheme(savedTheme);
         
-        // CHECK PERSISTENT LOGIN
-        if (Auth.checkPersistentLogin()) {
-            // User already logged in
-            document.getElementById('login-modal').style.display = 'none';
-            UI.updateAll();
-            this.newTest();
-            setTimeout(() => {
-                const box = document.getElementById('text-box');
-                if (box) box.focus();
-            }, 500);
-        } else {
-            // Show login modal
-            document.getElementById('login-modal').style.display = 'flex';
-            UI.updateAll();
-            this.newTest();
-            setTimeout(() => {
-                const box = document.getElementById('text-box');
-                if (box) box.focus();
-            }, 500);
-        }
+        // Create hidden input for mobile keyboard trigger
+        this.createMobileInput();
         
         // Set up event listeners
         this.setupEventListeners();
+        
+        // CHECK PERSISTENT LOGIN
+        if (Auth.checkPersistentLogin()) {
+            document.getElementById('login-modal').style.display = 'none';
+            UI.updateAll();
+            this.newTest();
+            setTimeout(() => this.focusCurrentTextBox(), 500);
+        } else {
+            document.getElementById('login-modal').style.display = 'flex';
+            UI.updateAll();
+            this.newTest();
+            setTimeout(() => this.focusCurrentTextBox(), 500);
+        }
         
         console.log('🎹 KeyVibe Ready!');
         console.log('Type your vibe. Race your tribe.');
     }
     
+    // Create hidden input for mobile keyboard
+    static createMobileInput() {
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'text';
+        hiddenInput.id = 'mobile-input';
+        hiddenInput.style.cssText = 
+            'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none;font-size:16px;';
+        hiddenInput.setAttribute('autocomplete', 'off');
+        hiddenInput.setAttribute('autocorrect', 'off');
+        hiddenInput.setAttribute('autocapitalize', 'off');
+        hiddenInput.setAttribute('spellcheck', 'false');
+        document.body.appendChild(hiddenInput);
+    }
+    
+    // Focus current text box
+    static focusCurrentTextBox() {
+        let textBoxId;
+        if (this.currentMode === 'ranked') {
+            textBoxId = 'r-text-box';
+        } else if (this.currentTab === 'multiplayer') {
+            textBoxId = 'mp-text-box';
+        } else {
+            textBoxId = 'text-box';
+        }
+        
+        // Focus hidden input for mobile keyboard
+        const mobileInput = document.getElementById('mobile-input');
+        if (mobileInput) {
+            mobileInput.focus();
+        }
+        
+        // Also focus the visual text box
+        const box = document.getElementById(textBoxId);
+        if (box) {
+            box.focus();
+        }
+    }
+    
     // ============ EVENT LISTENERS ============
     static setupEventListeners() {
-        // Keyboard handler
+        // Keyboard handler - listen on document for typing
         document.addEventListener('keydown', (e) => {
             // Skip if typing in an input field (login, room code, etc)
             const activeElement = document.activeElement;
@@ -53,7 +86,10 @@ class App {
                 (activeElement.tagName === 'INPUT' || 
                  activeElement.tagName === 'TEXTAREA' ||
                  activeElement.isContentEditable)) {
-                return;
+                // Kecuali mobile-input (itu buat trigger keyboard)
+                if (activeElement.id !== 'mobile-input') {
+                    return;
+                }
             }
             
             // Caps lock warning
@@ -68,14 +104,15 @@ class App {
             
             if (activeElement && activeElement.classList.contains('text-box')) {
                 textBoxId = activeElement.id;
+            } else if (activeElement && activeElement.id === 'mobile-input') {
+                // Mobile keyboard is active
+                textBoxId = TypingEngine.currentTextBoxId || 
+                           (this.currentMode === 'ranked' ? 'r-text-box' : 
+                            this.currentTab === 'multiplayer' ? 'mp-text-box' : 'text-box');
             } else if (this.currentTab === 'practice') {
                 textBoxId = this.currentMode === 'ranked' ? 'r-text-box' : 'text-box';
-                const box = document.getElementById(textBoxId);
-                if (box) box.focus();
             } else if (this.currentTab === 'multiplayer') {
                 textBoxId = 'mp-text-box';
-                const box = document.getElementById(textBoxId);
-                if (box) box.focus();
             } else {
                 return;
             }
@@ -94,6 +131,12 @@ class App {
             } else {
                 this.currentMode = 'practice';
                 TypingEngine.currentMode = 'practice';
+            }
+            
+            // Focus visual text box
+            const box = document.getElementById(textBoxId);
+            if (box && document.activeElement !== box) {
+                box.focus();
             }
             
             // Tab = restart test
@@ -143,25 +186,91 @@ class App {
             }
         });
         
-        // Text box click handlers
+        // Mobile input handler - capture input from hidden field
+        document.getElementById('mobile-input')?.addEventListener('input', (e) => {
+            const val = e.target.value;
+            if (val.length === 0) return;
+            
+            const char = val[val.length - 1];
+            e.target.value = ''; // Clear immediately
+            
+            if (TypingEngine.state.paused) {
+                TypingEngine.resumePause();
+                return;
+            }
+            
+            if (!TypingEngine.state.started) {
+                TypingEngine.start();
+            }
+            
+            if (!TypingEngine.state.running) return;
+            
+            TypingEngine.processChar(char);
+        });
+        
+        // Text box click handlers (MOBILE FIX - trigger keyboard)
         document.getElementById('text-box')?.addEventListener('click', function(e) {
             if (TypingEngine.state.paused) TypingEngine.resumePause();
+            const mobileInput = document.getElementById('mobile-input');
+            if (mobileInput) {
+                mobileInput.focus();
+                mobileInput.click();
+            }
             this.focus();
+            TypingEngine.currentTextBoxId = 'text-box';
         });
         
         document.getElementById('r-text-box')?.addEventListener('click', function(e) {
             if (TypingEngine.state.paused) TypingEngine.resumePause();
+            const mobileInput = document.getElementById('mobile-input');
+            if (mobileInput) {
+                mobileInput.focus();
+                mobileInput.click();
+            }
             this.focus();
+            TypingEngine.currentTextBoxId = 'r-text-box';
         });
         
         document.getElementById('mp-text-box')?.addEventListener('click', function(e) {
             if (Multiplayer.room && Multiplayer.room.started) return;
+            const mobileInput = document.getElementById('mobile-input');
+            if (mobileInput) {
+                mobileInput.focus();
+                mobileInput.click();
+            }
             this.focus();
+            TypingEngine.currentTextBoxId = 'mp-text-box';
+        });
+        
+        // Touch event for text boxes (extra mobile fix)
+        document.getElementById('text-box')?.addEventListener('touchstart', function(e) {
+            const mobileInput = document.getElementById('mobile-input');
+            if (mobileInput) {
+                mobileInput.focus();
+                mobileInput.click();
+            }
+        });
+        
+        document.getElementById('r-text-box')?.addEventListener('touchstart', function(e) {
+            const mobileInput = document.getElementById('mobile-input');
+            if (mobileInput) {
+                mobileInput.focus();
+                mobileInput.click();
+            }
+        });
+        
+        document.getElementById('mp-text-box')?.addEventListener('touchstart', function(e) {
+            if (Multiplayer.room && Multiplayer.room.started) return;
+            const mobileInput = document.getElementById('mobile-input');
+            if (mobileInput) {
+                mobileInput.focus();
+                mobileInput.click();
+            }
         });
         
         // Auto-focus text box on click anywhere
         document.addEventListener('click', function(e) {
-            if (e.target.closest('input')) return;
+            if (e.target.closest('input') && e.target.id !== 'mobile-input') return;
             if (e.target.closest('textarea')) return;
             if (e.target.closest('button')) return;
             if (e.target.closest('select')) return;
@@ -170,16 +279,10 @@ class App {
             if (e.target.closest('.theme-switcher')) return;
             if (e.target.closest('.text-box')) return;
             
-            if (App.currentTab === 'practice') {
-                const boxId = App.currentMode === 'ranked' ? 'r-text-box' : 'text-box';
-                const box = document.getElementById(boxId);
-                if (box && document.activeElement !== box) {
-                    box.focus();
-                }
-            } else if (App.currentTab === 'multiplayer') {
-                const box = document.getElementById('mp-text-box');
-                if (box && document.activeElement !== box) {
-                    box.focus();
+            if (App.currentTab === 'practice' || App.currentTab === 'multiplayer') {
+                const mobileInput = document.getElementById('mobile-input');
+                if (mobileInput) {
+                    mobileInput.focus();
                 }
             }
         });
@@ -210,12 +313,10 @@ class App {
     static goTab(tab, btn) {
         this.currentTab = tab;
         
-        // Hide all tabs
         document.querySelectorAll('.tab-c').forEach(el => el.classList.remove('active'));
         const tabEl = document.getElementById('tab-' + tab);
         if (tabEl) tabEl.classList.add('active');
         
-        // Update nav buttons
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         if (btn) {
             btn.classList.add('active');
@@ -228,7 +329,6 @@ class App {
             });
         }
         
-        // Tab-specific actions
         if (tab === 'leaderboard') UI.renderLeaderboard();
         if (tab === 'profile') UI.renderProfile();
         if (tab === 'multiplayer') {
@@ -244,14 +344,7 @@ class App {
             this.setMode('practice');
         }
         
-        // Focus text box
-        setTimeout(() => {
-            if (tab === 'practice') {
-                document.getElementById('text-box')?.focus();
-            } else if (tab === 'multiplayer') {
-                document.getElementById('mp-text-box')?.focus();
-            }
-        }, 200);
+        setTimeout(() => this.focusCurrentTextBox(), 200);
     }
     
     // ============ MODE SWITCHING ============
@@ -277,20 +370,16 @@ class App {
     // ============ SETTINGS ============
     static setDifficulty(diff, btn) {
         TypingEngine.state.diff = diff;
-        
         document.querySelectorAll('#mode-practice .tb-group:first-child .tb-btn')
             .forEach(b => b.classList.remove('active'));
         if (btn) btn.classList.add('active');
-        
         this.newTest();
     }
     
     static setDuration(dur, btn) {
         TypingEngine.state.duration = dur;
-        
         document.querySelectorAll('[id^="d"]').forEach(b => b.classList.remove('active'));
         if (btn) btn.classList.add('active');
-        
         this.newTest();
     }
     
@@ -320,11 +409,7 @@ class App {
         TypingEngine.currentTextBoxId = textBoxId;
         TypingEngine.buildText(textBoxId);
         
-        // Auto focus
-        setTimeout(() => {
-            const box = document.getElementById(textBoxId);
-            if (box) box.focus();
-        }, 150);
+        setTimeout(() => this.focusCurrentTextBox(), 150);
     }
     
     // ============ OVERLAY CONTROLS ============
@@ -338,6 +423,12 @@ class App {
     
     static resumePause() {
         TypingEngine.resumePause();
+        
+        // Re-focus mobile input after resume
+        setTimeout(() => {
+            const mobileInput = document.getElementById('mobile-input');
+            if (mobileInput) mobileInput.focus();
+        }, 100);
     }
 }
 
