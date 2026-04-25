@@ -340,7 +340,7 @@ class TypingEngine {
         });
         if (userData.history.length > 20) userData.history.pop();
         
-        // Ranked mode - push to leaderboard
+        // Ranked mode - push to Firebase Leaderboard
         if (this.currentMode === 'ranked' && Auth.currentUser) {
             userData.rankedHistory = userData.rankedHistory || [];
             userData.rankedHistory.unshift({
@@ -348,11 +348,12 @@ class TypingEngine {
                 maxCombo: this.state.maxCombo,
                 time: new Date().toLocaleTimeString()
             });
-            // Use username for leaderboard
-            Storage.updateLeaderboard(Auth.currentUser.data.username, wpm, acc);
+            // Update Firebase Leaderboard
+            FirebaseService.updateLeaderboard(Auth.userData.username, wpm, acc);
         }
         
-        Auth.saveCurrentUser();
+        // Save to Firebase
+        Auth.saveUserData();
         
         // Store and show result
         this.lastResult = { wpm, acc, combo: this.state.maxCombo };

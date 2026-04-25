@@ -1,54 +1,57 @@
-// ============ KEYVIBE AUTHENTICATION ============
+// ============ KEYVIBE AUTHENTICATION (FIREBASE) ============
 
 class Auth {
     static currentUser = null;
+    static userData = null;
     static guestData = {
         bestWpm: 0, totalTests: 0, xp: 0,
         history: [], rankedHistory: [],
         streak: 1, maxCombo: 0
     };
+    static authReady = false;
+    
+    // ============ INIT ============
+    static init() {
+        // Listen for auth state changes
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                // User is signed in
+                const result = await FirebaseService.getUserData(user.uid);
+                if (result.success) {
+                    this.currentUser = user;
+                    this.userData = result.data;
+                    this.authReady = true;
+                    this.onLoginSuccess();
+                }
+            } else {
+                // User is signed out
+                this.currentUser = null;
+                this.userData = null;
+                this.authReady = true;
+            }
+        });
+    }
+    
+    // Called when login is successful
+    static onLoginSuccess() {
+        document.getElementById('login-modal').style.display = 'none';
+        document.getElementById('h-name').textContent = this.userData.username;
+        
+        const avatarUrl = this.getGmailAvatar(this.currentUser.email);
+        this.updateAvatarDisplay(avatarUrl);
+        
+        UI.updateAll();
+        App.newTest();
+        UI.showToast(`Welcome, ${this.userData.username}!`, '👋');
+    }
     
     // ============ GET USER DATA ============
     static getUserData() {
-        return this.currentUser ? this.currentUser.data : this.guestData;
-    }
-    
-    // ============ SAVE CURRENT USER ============
-    static saveCurrentUser() {
-        if (this.currentUser) {
-            Storage.saveUser(this.currentUser.email, this.currentUser.data);
-        }
-    }
-    
-    // ============ PERSISTENT LOGIN ============
-    static checkPersistentLogin() {
-        const savedEmail = localStorage.getItem('keyvibe_session');
-        if (savedEmail) {
-            const userData = Storage.getUser(savedEmail);
-            if (userData) {
-                this.currentUser = { email: savedEmail, data: userData };
-                document.getElementById('h-name').textContent = userData.username;
-                const avatarUrl = this.getGmailAvatar(savedEmail);
-                this.updateAvatarDisplay(avatarUrl);
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    static saveSession() {
-        if (this.currentUser) {
-            localStorage.setItem('keyvibe_session', this.currentUser.email);
-        }
-    }
-    
-    static clearSession() {
-        localStorage.removeItem('keyvibe_session');
+        return this.currentUser && this.userData ? this.userData : this.guestData;
     }
     
     // ============ AVATAR ============
     static getGmailAvatar(email) {
-        // Pake Gravatar
         const hash = this.simpleHash(email.toLowerCase().trim());
         return `https://www.gravatar.com/avatar/${hash}?d=404&s=80`;
     }
@@ -70,10 +73,10 @@ class Auth {
         
         if (!avatarEl) return;
         
-        const username = this.currentUser ? this.currentUser.data.username : 'Guest';
+        const username = this.currentUser ? this.userData.username : 'Guest';
         const firstLetter = username[0].toUpperCase();
         
-        // Default: tampilin inisial
+        // Default: inisial
         avatarEl.style.background = 'var(--accent)';
         if (avatarText) {
             avatarText.style.display = 'block';
@@ -81,7 +84,7 @@ class Auth {
         }
         if (avatarImg) avatarImg.style.display = 'none';
         
-        // Kalo ada avatar URL, coba load
+        // Coba load avatar
         if (avatarUrl) {
             const img = avatarImg || document.createElement('img');
             img.id = 'h-avatar-img';
@@ -94,7 +97,6 @@ class Auth {
             };
             
             img.onerror = () => {
-                // Fallback ke inisial
                 img.style.display = 'none';
                 if (avatarText) avatarText.style.display = 'block';
                 avatarEl.style.background = 'var(--accent)';
@@ -124,7 +126,7 @@ class Auth {
     }
     
     // ============ LOGIN ============
-    static login() {
+    static async login() {
         const email = document.getElementById('si-email').value.trim().toLowerCase();
         const password = document.getElementById('si-pass').value;
         const errEl = document.getElementById('si-err');
@@ -140,18 +142,20 @@ class Auth {
             return;
         }
         
-        const userData = Storage.getUser(email);
+        const result = await FirebaseService.login(email, password);
         
-        if (!userData || userData.password !== btoa(password)) {
-            errEl.textContent = 'Wrong email or password.';
+        if (!result.success) {
+            errEl.textContent = this.getErrorMessage(result.error);
             return;
         }
         
-        this.setUser(email, userData);
+        this.currentUser = result.user;
+        this.userData = result.userData;
+        this.onLoginSuccess();
     }
     
     // ============ REGISTER ============
-    static register() {
+    static async register() {
         const email = document.getElementById('su-email').value.trim().toLowerCase();
         const username = document.getElementById('su-user').value.trim();
         const password = document.getElementById('su-pass').value;
@@ -189,37 +193,31 @@ class Auth {
             return;
         }
         
-        if (Storage.getUser(email)) {
-            errEl.textContent = 'This email is already registered.';
+        const result = await FirebaseService.register(email, password, username);
+        
+        if (!result.success) {
+            errEl.textContent = this.getErrorMessage(result.error);
             return;
         }
         
-        const allUsers = Storage.getAllUsers();
-        if (allUsers.some(u => u.username && u.username.toLowerCase() === username.toLowerCase())) {
-            errEl.textContent = 'Username already taken.';
-            return;
-        }
-        
-        const userData = {
+        this.currentUser = result.user;
+        this.userData = {
             email: email,
             username: username,
-            password: btoa(password),
             bestWpm: 0,
             totalTests: 0,
             xp: 0,
             history: [],
             rankedHistory: [],
-            streak: 1,
             maxCombo: 0
         };
-        
-        Storage.saveUser(email, userData);
-        this.setUser(email, userData);
+        this.onLoginSuccess();
     }
     
     // ============ GUEST ============
     static guest() {
         this.currentUser = null;
+        this.userData = null;
         document.getElementById('login-modal').style.display = 'none';
         document.getElementById('h-name').textContent = 'Guest';
         this.updateAvatarDisplay(null);
@@ -228,32 +226,14 @@ class Auth {
         UI.showToast("Playing as Guest - scores won't be saved", '👋');
     }
     
-    // ============ SET USER ============
-    static setUser(email, data) {
-        if (!data.maxCombo) data.maxCombo = 0;
-        if (!data.rankedHistory) data.rankedHistory = [];
-        
-        this.currentUser = { email, data };
-        this.saveSession(); // ← PERSISTENT LOGIN
-        
-        document.getElementById('login-modal').style.display = 'none';
-        document.getElementById('h-name').textContent = data.username;
-        
-        const avatarUrl = this.getGmailAvatar(email);
-        this.updateAvatarDisplay(avatarUrl);
-        
-        UI.updateAll();
-        App.newTest();
-        UI.showToast(`Welcome, ${data.username}!`, '👋');
-    }
-    
     // ============ SIGNOUT ============
-    static signout() {
-        if (!confirm('Sign out? Your guest data will be cleared.')) return;
+    static async signout() {
+        if (!confirm('Sign out?')) return;
+        
+        await FirebaseService.signOut();
         
         this.currentUser = null;
-        this.clearSession(); // ← CLEAR SESSION
-        
+        this.userData = null;
         this.guestData = {
             bestWpm: 0, totalTests: 0, xp: 0,
             history: [], rankedHistory: [],
@@ -266,5 +246,34 @@ class Auth {
         
         UI.updateAll();
         App.newTest();
+    }
+    
+    // ============ SAVE USER DATA TO FIRESTORE ============
+    static async saveUserData() {
+        if (this.currentUser && this.userData) {
+            await FirebaseService.updateUserData(this.currentUser.uid, this.userData);
+        }
+    }
+    
+    // ============ ERROR MESSAGES ============
+    static getErrorMessage(error) {
+        switch (error) {
+            case 'auth/email-already-in-use':
+                return 'This email is already registered.';
+            case 'auth/invalid-email':
+                return 'Invalid email address.';
+            case 'auth/weak-password':
+                return 'Password must be at least 6 characters.';
+            case 'auth/user-not-found':
+                return 'No account found with this email.';
+            case 'auth/wrong-password':
+                return 'Wrong password.';
+            case 'auth/invalid-credential':
+                return 'Invalid email or password.';
+            case 'auth/too-many-requests':
+                return 'Too many attempts. Please try again later.';
+            default:
+                return error || 'Something went wrong. Please try again.';
+        }
     }
 }
