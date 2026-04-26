@@ -104,34 +104,36 @@ class UI {
     
     // Render leaderboard
     static renderLeaderboard() {
-        const leaderboard = Storage.getLeaderboard(15);
-        const currentUsername = Auth.currentUser ? Auth.currentUser.data.username : null;
-        const medals = ['🥇', '🥈', '🥉'];
-        
-        document.getElementById('lb-body').innerHTML = leaderboard.map((p, i) => {
-            const rank = getRank(p.wpm);
-            const isYou = currentUsername && p.name === currentUsername;
+        FirebaseService.getLeaderboard(15).then(result => {
+            const leaderboard = result.data || [];
+            const currentUsername = Auth.currentUser ? Auth.userData?.username : null;
+            const medals = ['🥇', '🥈', '🥉'];
             
-            return `
-                <tr class="${isYou ? 'you-row' : ''}">
-                    <td style="font-family:'JetBrains Mono',monospace;font-weight:700">
-                        ${i < 3 ? medals[i] : '#' + (i + 1)}
-                    </td>
-                    <td style="font-weight:600">
-                        ${p.name}
-                        ${isYou ? '<span style="font-size:8px;color:var(--accent);background:rgba(124,106,247,0.15);padding:1px 4px;border-radius:3px">YOU</span>' : ''}
-                    </td>
-                    <td>
-                        <span class="rank-pill" style="background:${rank.bg};color:${rank.color}">
-                            ${rank.icon} ${rank.name}
-                        </span>
-                    </td>
-                    <td style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent2)">${p.wpm}</td>
-                    <td style="color:var(--success)">${p.acc}%</td>
-                    <td style="color:var(--muted)">${p.tests}</td>
-                </tr>
-            `;
-        }).join('');
+            document.getElementById('lb-body').innerHTML = leaderboard.map((p, i) => {
+                const rank = getRank(p.wpm);
+                const isYou = currentUsername && p.name === currentUsername;
+                
+                return `
+                    <tr class="${isYou ? 'you-row' : ''}">
+                        <td style="font-family:'JetBrains Mono',monospace;font-weight:700">
+                            ${i < 3 ? medals[i] : '#' + (i + 1)}
+                        </td>
+                        <td style="font-weight:600">
+                            ${p.name}
+                            ${isYou ? '<span style="font-size:8px;color:var(--accent);background:rgba(124,106,247,0.15);padding:1px 4px;border-radius:3px">YOU</span>' : ''}
+                        </td>
+                        <td>
+                            <span class="rank-pill" style="background:${rank.bg};color:${rank.color}">
+                                ${rank.icon} ${rank.name}
+                            </span>
+                        </td>
+                        <td style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent2)">${p.wpm}</td>
+                        <td style="color:var(--success)">${p.acc}%</td>
+                        <td style="color:var(--muted)">${p.tests}</td>
+                    </tr>
+                `;
+            }).join('');
+        });
     }
     
     // Render profile

@@ -6,12 +6,12 @@ class App {
     
     // ============ INITIALIZATION ============
     static init() {
-        Storage.init();
+        // Firebase di-init di firebase.js
         Sound.init();
         UI.buildThemePanel();
         
         // Load saved theme
-        const savedTheme = Storage.loadTheme();
+        const savedTheme = FirebaseService.loadTheme();
         this.setTheme(savedTheme);
         
         // Create hidden input for mobile keyboard trigger
@@ -20,18 +20,14 @@ class App {
         // Set up event listeners
         this.setupEventListeners();
         
-        // CHECK PERSISTENT LOGIN
-        if (Auth.checkPersistentLogin()) {
-            document.getElementById('login-modal').style.display = 'none';
-            UI.updateAll();
-            this.newTest();
-            setTimeout(() => this.focusCurrentTextBox(), 500);
-        } else {
-            document.getElementById('login-modal').style.display = 'flex';
-            UI.updateAll();
-            this.newTest();
-            setTimeout(() => this.focusCurrentTextBox(), 500);
-        }
+        // Init Auth listener
+        Auth.init();
+        
+        // Show login modal first, auth listener will handle auto-login
+        document.getElementById('login-modal').style.display = 'flex';
+        UI.updateAll();
+        this.newTest();
+        setTimeout(() => this.focusCurrentTextBox(), 500);
         
         console.log('🎹 KeyVibe Ready!');
         console.log('Type your vibe. Race your tribe.');
@@ -39,7 +35,6 @@ class App {
     
     // Create hidden input for mobile keyboard
     static createMobileInput() {
-        // Hapus dulu kalo udah ada
         const old = document.getElementById('mobile-input');
         if (old) old.remove();
         
@@ -53,7 +48,6 @@ class App {
         hiddenInput.setAttribute('inputmode', 'text');
         hiddenInput.setAttribute('enterkeyhint', 'done');
         
-        // Style: kasih posisi fixed tapi tetep bisa di-focus
         hiddenInput.style.cssText = `
             position: fixed !important;
             left: 0 !important;
@@ -68,35 +62,27 @@ class App {
         
         document.body.appendChild(hiddenInput);
         
-        // Handler pas ada input dari mobile
         hiddenInput.addEventListener('input', (e) => {
             const val = e.target.value;
             if (val.length === 0) return;
             
-            // Ambil karakter terakhir
             const char = val[val.length - 1];
-            
-            // Clear input biar bisa nerima karakter berikutnya
             e.target.value = '';
             
-            // Jangan proses kalo lagi pause
             if (TypingEngine.state.paused) {
                 TypingEngine.resumePause();
                 return;
             }
             
-            // Start typing kalo belum mulai
             if (!TypingEngine.state.started) {
                 TypingEngine.start();
             }
             
             if (!TypingEngine.state.running) return;
             
-            // Proses karakter
             TypingEngine.processChar(char);
         });
         
-        // Handle backspace di mobile
         hiddenInput.addEventListener('keydown', (e) => {
             if (e.key === 'Backspace') {
                 e.preventDefault();
@@ -116,22 +102,19 @@ class App {
             textBoxId = 'text-box';
         }
         
-        // Focus hidden input for mobile keyboard
         const mobileInput = document.getElementById('mobile-input');
         if (mobileInput && /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent)) {
             mobileInput.focus();
         }
         
-        // Update typing engine
         TypingEngine.currentTextBoxId = textBoxId;
     }
     
     // ============ EVENT LISTENERS ============
     static setupEventListeners() {
-        // Detect mobile
         const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent);
         
-        // Text box CLICK handlers
+        // Text box click handlers
         document.getElementById('text-box')?.addEventListener('click', (e) => {
             if (TypingEngine.state.paused) TypingEngine.resumePause();
             
@@ -139,7 +122,6 @@ class App {
             this.currentMode = 'practice';
             TypingEngine.currentMode = 'practice';
             
-            // Di mobile, fokus ke hidden input
             if (isMobile) {
                 e.preventDefault();
                 const mobileInput = document.getElementById('mobile-input');
@@ -192,12 +174,10 @@ class App {
         
         // Desktop keyboard handler
         document.addEventListener('keydown', (e) => {
-            // Di mobile, keyboard events di-handle sama hidden input
             if (isMobile && document.activeElement?.id !== 'mobile-input') {
                 return;
             }
             
-            // Skip if typing in form inputs
             const activeElement = document.activeElement;
             if (activeElement && 
                 (activeElement.tagName === 'INPUT' || 
@@ -208,14 +188,12 @@ class App {
                 }
             }
             
-            // Caps lock warning
             const isCaps = e.getModifierState('CapsLock');
             const capsWarn = document.getElementById('caps-warn');
             const rCapsWarn = document.getElementById('r-caps-warn');
             if (capsWarn) capsWarn.style.display = isCaps ? 'block' : 'none';
             if (rCapsWarn) rCapsWarn.style.display = isCaps ? 'block' : 'none';
             
-            // Tab = restart test
             if (e.key === 'Tab') {
                 e.preventDefault();
                 if (this.currentTab === 'practice' || this.currentTab === 'multiplayer') {
@@ -224,7 +202,6 @@ class App {
                 return;
             }
             
-            // Escape = pause
             if (e.key === 'Escape') {
                 if (this.currentMode !== 'ranked') {
                     if (TypingEngine.state.running && !TypingEngine.state.paused) {
@@ -236,7 +213,6 @@ class App {
                 return;
             }
             
-            // Single character (desktop only)
             if (!isMobile && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1) {
                 e.preventDefault();
                 
@@ -255,14 +231,12 @@ class App {
                 return;
             }
             
-            // Backspace (desktop only)
             if (!isMobile && e.key === 'Backspace') {
                 e.preventDefault();
                 TypingEngine.backspace();
             }
         });
         
-        // Auto-focus on click anywhere
         document.addEventListener('click', (e) => {
             if (e.target.closest('input, textarea, button, select')) return;
             if (e.target.closest('.modal-backdrop, .overlay, .theme-switcher, .text-box')) return;
@@ -275,21 +249,18 @@ class App {
             }
         });
         
-        // Visibility change = pause
         document.addEventListener('visibilitychange', () => {
             if (document.hidden && TypingEngine.state.running && !TypingEngine.state.paused) {
                 TypingEngine.showPause();
             }
         });
         
-        // Prevent zoom on double tap
         document.addEventListener('dblclick', (e) => {
             if (e.target.closest('.text-box')) {
                 e.preventDefault();
             }
         }, { passive: false });
         
-        // Close theme panel on outside click
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.theme-switcher')) {
                 document.getElementById('theme-panel')?.classList.remove('show');
@@ -377,7 +348,7 @@ class App {
         } else {
             document.documentElement.setAttribute('data-theme', theme);
         }
-        Storage.saveTheme(theme);
+        FirebaseService.saveTheme(theme);
     }
     
     // ============ TEST CONTROL ============
