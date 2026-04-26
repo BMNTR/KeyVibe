@@ -38,28 +38,27 @@ class FirebaseService {
     }
     
     // Login
-    static async login() {
-        const email = document.getElementById('si-email').value.trim().toLowerCase();
-        const password = document.getElementById('si-pass').value;
-        const errEl = document.getElementById('si-err');
-        
-        if (!email || !password) {
-            errEl.textContent = 'Please fill all fields.';
-            return;
-        }
-        
+    static async login(email, password) {
         try {
-            // Coba login pake Firebase Auth dulu
-            const result = await FirebaseService.login(email, password);
+            const userCredential = await auth.signInWithEmailAndPassword(email, password);
+            const user = userCredential.user;
             
-            if (result.success) {
-                // Login berhasil, pakai data dari Auth
-                const user = result.user;
-                
-                // Bikin userData minimal dari Auth
-                const userData = {
+            // Ambil data dari Firestore (jangan blokir kalo gagal)
+            let userData = null;
+            try {
+                const doc = await db.collection('users').doc(user.uid).get();
+                if (doc.exists) {
+                    userData = doc.data();
+                }
+            } catch (firestoreError) {
+                console.warn('Firestore fetch failed, using auth-only login');
+            }
+            
+            // Kalo Firestore gagal, pakai data minimal
+            if (!userData) {
+                userData = {
                     email: user.email,
-                    username: user.email.split('@')[0], // Fallback username
+                    username: user.email.split('@')[0],
                     bestWpm: 0,
                     totalTests: 0,
                     xp: 0,
@@ -67,24 +66,15 @@ class FirebaseService {
                     rankedHistory: [],
                     maxCombo: 0
                 };
-                
-                // Coba ambil dari Firestore (optional, ga ngeblok login)
-                FirebaseService.getUserData(user.uid).then(res => {
-                    if (res.success) {
-                        Auth.userData = res.data;
-                        document.getElementById('h-name').textContent = res.data.username;
-                    }
-                }).catch(() => {});
-                
-                Auth.currentUser = user;
-                Auth.userData = userData;
-                Auth.onLoginSuccess();
-            } else {
-                errEl.textContent = result.error || 'Login failed.';
             }
+            
+            return { success: true, user, userData };
         } catch (error) {
-            errEl.textContent = 'Login error. Check your connection.';
-            console.error(error);
+            let message = error.message;
+            if (error.code) {
+                message = error.code;
+            }
+            return { success: false, error: message };
         }
     }
 
