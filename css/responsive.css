@@ -1,0 +1,203 @@
+/* ============ MOBILE RESPONSIVE ============ */
+@media (max-width: 768px) {
+    .app { padding: 12px 8px; }
+    
+    .header { gap: 6px; margin-bottom: 16px; }
+    .logo-icon { width: 30px; height: 30px; font-size: 14px; border-radius: 8px; }
+    .logo-text { font-size: 16px; }
+    .nav { gap: 1px; }
+    .nav-btn { padding: 6px 10px; font-size: 11px; border-radius: 6px; }
+    .user-chip { padding: 6px 10px; gap: 6px; }
+    .u-avatar { width: 24px; height: 24px; font-size: 10px; }
+    .u-name { font-size: 11px; max-width: 60px; }
+    
+    .main-layout { flex-direction: column; }
+    .ad-sidebar { display: none; }
+    .ad-banner { height: 60px; margin-bottom: 12px; }
+    .ad-inline { height: 80px; margin: 16px 0; }
+    
+    .stats-row { grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 16px; }
+    .stat-card { padding: 10px 6px; border-radius: 10px; }
+    .stat-val { font-size: 18px; }
+    .stat-label { font-size: 8px; }
+    
+    .mode-tabs { margin-bottom: 12px; border-radius: 10px; padding: 3px; }
+    .mode-tab { font-size: 11px; padding: 8px 4px; gap: 3px; }
+    
+    .panel { padding: 12px; border-radius: 12px; margin-bottom: 12px; }
+    .panel-title { font-size: 11px; margin-bottom: 10px; }
+    
+    .toolbar { gap: 4px; margin-bottom: 12px; }
+    .tb-btn { padding: 5px 8px; font-size: 10px; }
+    .timer-badge { font-size: 11px; padding: 3px 8px; }
+    
+    .text-box {
+        padding: 14px 12px 44px;
+        min-height: 110px;
+        border-radius: 12px;
+        border-width: 1.5px;
+    }
+    .words-wrap { 
+        font-size: 16px; 
+        line-height: 2; 
+        max-height: calc(2em * 3);
+        -webkit-overflow-scrolling: touch;
+    }
+    .live-row { top: 8px; right: 8px; gap: 8px; }
+    .live-stat { font-size: 9px; }
+    .combo-display { bottom: 8px; left: 8px; }
+    .combo-counter { font-size: 10px; padding: 2px 6px; }
+    .hint { font-size: 10px; margin-top: 4px; }
+    
+    .result-card { padding: 20px 14px; border-radius: 16px; }
+    .res-wpm { font-size: 42px; }
+    .res-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .res-stat { padding: 8px 4px; }
+    .res-stat-val { font-size: 16px; }
+    .res-stat-label { font-size: 8px; }
+    .btn { padding: 8px 12px; font-size: 11px; min-height: 40px; }
+    
+    .modal-card { padding: 24px 16px; border-radius: 16px; }
+    .modal-title { font-size: 20px; }
+    .modal-sub { font-size: 11px; margin-bottom: 16px; }
+    .modal-tab { font-size: 12px; padding: 8px; }
+    .input-grp input { font-size: 14px; padding: 10px 12px; }
+    .modal-btn { font-size: 14px; padding: 12px; min-height: 44px; }
+    .guest-link { font-size: 13px; padding: 12px; }
+    
+    .share-card { padding: 18px 14px; }
+    .share-card .res-wpm { font-size: 34px; }
+    
+    .mp-input { width: 130px; font-size: 13px; }
+    .mp-code { font-size: 20px; }
+    .mp-player-chip { font-size: 10px; padding: 5px 8px; }
+    
+    .p-grid { grid-template-columns: 1fr; gap: 12px; }
+    .lb-table th, .lb-table td { padding: 6px 4px; font-size: 10px; }
+    
+    .theme-switcher { bottom: 10px; right: 10px; }
+    .theme-toggle-btn, .mute-toggle-btn { 
+        width: 38px; 
+        height: 38px; 
+        font-size: 16px; 
+    }
+    .theme-panel { 
+        min-width: 170px; 
+        padding: 8px; 
+        border-radius: 12px;
+        max-height: 250px;
+    }
+    .theme-option { padding: 8px 10px; font-size: 11px; min-height: 38px; }
+    
+    /* Fix untuk iOS Safari */
+    .text-box:focus-within {
+        position: relative;
+        z-index: 10;
+    }
+    
+    /* Scroll lebih smooth di mobile */
+    .words-wrap, .theme-panel, .modal-card, .result-card {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* ============ SMALL PHONES ============ */
+@media (max-width: 400px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); gap: 4px; }
+    .stat-val { font-size: 16px; }
+    .nav-btn { padding: 5px 7px; font-size: 10px; }
+    .mode-tab { font-size: 10px; padding: 6px 3px; }
+    .words-wrap { font-size: 14px; line-height: 1.9; }
+    .res-wpm { font-size: 34px; }
+    .btn { font-size: 10px; padding: 8px 10px; min-height: 36px; }
+    .tb-btn { padding: 4px 6px; font-size: 9px; }
+    
+    .modal-card { padding: 20px 12px; }
+    .modal-logo { font-size: 28px; }
+    .modal-title { font-size: 18px; }
+    .modal-tab { font-size: 11px; padding: 6px 4px; }
+    .input-grp input { font-size: 13px; padding: 8px 10px; }
+    .modal-btn { font-size: 13px; padding: 10px; min-height: 40px; }
+    .guest-link { font-size: 12px; padding: 10px; }
+    
+    .text-box { padding: 12px 10px 40px; min-height: 100px; }
+    .live-row { top: 6px; right: 6px; gap: 6px; }
+    .live-stat { font-size: 8px; }
+    .combo-counter { font-size: 9px; }
+    .hint { font-size: 9px; }
+    
+    .result-card { padding: 16px 10px; }
+    .res-wpm { font-size: 30px; }
+    .res-stat-val { font-size: 14px; }
+    
+    .mp-input { width: 110px; font-size: 12px; }
+    .mp-code { font-size: 18px; letter-spacing: 2px; }
+    .mp-player-chip { font-size: 9px; padding: 4px 6px; }
+    
+    .user-chip { padding: 4px 8px; }
+    .u-avatar { width: 20px; height: 20px; font-size: 9px; }
+    .u-name { font-size: 10px; max-width: 50px; }
+    
+    .theme-toggle-btn, .mute-toggle-btn { 
+        width: 34px; 
+        height: 34px; 
+        font-size: 14px; 
+    }
+    .theme-panel { min-width: 150px; }
+    .theme-option { padding: 6px 8px; font-size: 10px; min-height: 34px; }
+}
+
+/* ============ TABLET ============ */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .ad-sidebar { width: 120px; }
+    .main-layout { gap: 12px; }
+    .stats-row { gap: 8px; }
+    .stat-card { padding: 12px 8px; }
+    .stat-val { font-size: 19px; }
+}
+
+/* ============ LANDSCAPE MOBILE ============ */
+@media (max-width: 768px) and (orientation: landscape) {
+    .text-box { min-height: 90px; }
+    .words-wrap { max-height: calc(2em * 2); font-size: 15px; }
+    .stats-row { grid-template-columns: repeat(4, 1fr); }
+    .modal-card { max-height: 80vh; }
+    .result-card { max-height: 80vh; }
+}
+
+/* ============ DARK MODE PREFERENCE ============ */
+@media (prefers-color-scheme: light) {
+    /* KeyVibe tetep dark mode karena emang design-nya */
+    /* User bisa pilih tema terang di theme switcher */
+}
+
+/* ============ REDUCED MOTION ============ */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .char.cursor::after {
+        animation: none;
+        opacity: 1;
+    }
+}
+
+/* ============ HIGH CONTRAST ============ */
+@media (prefers-contrast: high) {
+    .char.untyped { opacity: 0.8; }
+    .badge.locked { opacity: 0.5; }
+}
+
+/* ============ PRINT ============ */
+@media print {
+    .ad-slot, .theme-switcher, .nav, .user-chip,
+    .modal-backdrop, .overlay, .toast-container {
+        display: none !important;
+    }
+    
+    body { background: white; color: black; }
+    .app { max-width: 100%; }
+}
