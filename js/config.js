@@ -1,15 +1,8 @@
 // ============ KEYVIBE CONFIGURATION ============
 
-// Firebase Configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyDHUEyDc8Y6AHhmeBdwg8Gr5JCOQLUzAjs",
-    authDomain: "keyvibe-adfe9.firebaseapp.com",
-    projectId: "keyvibe-adfe9",
-    storageBucket: "keyvibe-adfe9.firebasestorage.app",
-    messagingSenderId: "923616182428",
-    appId: "1:923616182428:web:5bc355c5510486bb16ad59",
-    measurementId: "G-7663DGZ84F"
-};
+// Supabase Configuration
+const SUPABASE_URL = 'https://skkihzfidzukzesnbumu.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_FtET1F1wc7yiHcsmJ1r83w_N_j6MGVK';
 
 // Rank System
 const RANKS = [
@@ -53,7 +46,7 @@ const THEMES = {
     'candy': { name: 'Candy Pop', color: '#e91e63' }
 };
 
-// Mock Players for Leaderboard (First time only)
+// Mock Players for Leaderboard
 const MOCK_PLAYERS = [
     { name: "SpeedDemon99", wpm: 194, acc: 98.2, tests: 342 },
     { name: "QuantumFingers", wpm: 172, acc: 97.5, tests: 211 },

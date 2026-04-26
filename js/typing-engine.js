@@ -348,11 +348,11 @@ class TypingEngine {
                 maxCombo: this.state.maxCombo,
                 time: new Date().toLocaleTimeString()
             });
-            // Update Firebase Leaderboard
-            FirebaseService.updateLeaderboard(Auth.userData.username, wpm, acc);
+            // Update Supabase Leaderboard
+            SupabaseService.updateLeaderboard(Auth.userData.username, wpm, acc);
         }
-        
-        // Save to Firebase
+
+        // Save to Supabase
         Auth.saveUserData();
         
         // Store and show result

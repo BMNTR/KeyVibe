@@ -6,7 +6,7 @@ class Sound {
     
     // Initialize
     static init() {
-        this.muted = FirebaseService.loadMuted();
+        this.muted = SupabaseService.loadMuted();
         this.updateMuteButton();
     }
     
@@ -102,7 +102,7 @@ class Sound {
     // Toggle mute
     static toggle() {
         this.muted = !this.muted;
-        Storage.saveMuted(this.muted);
+        SupabaseService.saveMuted(this.muted);
         this.updateMuteButton();
         UI.showToast(this.muted ? 'Sound muted 🔇' : 'Sound on 🔊');
     }
