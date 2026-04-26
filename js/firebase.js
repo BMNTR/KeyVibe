@@ -5,6 +5,10 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
+db.settings({
+    experimentalForceLongPolling: true,
+});
+
 class FirebaseService {
     // ============ AUTHENTICATION ============
     
@@ -34,20 +38,56 @@ class FirebaseService {
     }
     
     // Login
-    static async login(email, password) {
+    static async login() {
+        const email = document.getElementById('si-email').value.trim().toLowerCase();
+        const password = document.getElementById('si-pass').value;
+        const errEl = document.getElementById('si-err');
+        
+        if (!email || !password) {
+            errEl.textContent = 'Please fill all fields.';
+            return;
+        }
+        
         try {
-            const userCredential = await auth.signInWithEmailAndPassword(email, password);
-            const user = userCredential.user;
+            // Coba login pake Firebase Auth dulu
+            const result = await FirebaseService.login(email, password);
             
-            // Get user data from Firestore
-            const doc = await db.collection('users').doc(user.uid).get();
-            const userData = doc.data();
-            
-            return { success: true, user, userData };
+            if (result.success) {
+                // Login berhasil, pakai data dari Auth
+                const user = result.user;
+                
+                // Bikin userData minimal dari Auth
+                const userData = {
+                    email: user.email,
+                    username: user.email.split('@')[0], // Fallback username
+                    bestWpm: 0,
+                    totalTests: 0,
+                    xp: 0,
+                    history: [],
+                    rankedHistory: [],
+                    maxCombo: 0
+                };
+                
+                // Coba ambil dari Firestore (optional, ga ngeblok login)
+                FirebaseService.getUserData(user.uid).then(res => {
+                    if (res.success) {
+                        Auth.userData = res.data;
+                        document.getElementById('h-name').textContent = res.data.username;
+                    }
+                }).catch(() => {});
+                
+                Auth.currentUser = user;
+                Auth.userData = userData;
+                Auth.onLoginSuccess();
+            } else {
+                errEl.textContent = result.error || 'Login failed.';
+            }
         } catch (error) {
-            return { success: false, error: error.message };
+            errEl.textContent = 'Login error. Check your connection.';
+            console.error(error);
         }
     }
+
     
     // Sign out
     static async signOut() {
