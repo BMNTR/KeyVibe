@@ -139,6 +139,7 @@ class UI {
     // Render profile
     static renderProfile() {
         const data = Auth.getUserData();
+        if (!data) return;
         const name = Auth.currentUser ? Auth.currentUser.data.username : 'Guest';
         const rank = getRank(data.bestWpm || 0);
         

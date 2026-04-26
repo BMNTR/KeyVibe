@@ -35,15 +35,18 @@ class Auth {
     // Called when login is successful
     static onLoginSuccess() {
         document.getElementById('login-modal').style.display = 'none';
-        document.getElementById('h-name').textContent = this.userData.username;
         
-        const avatarUrl = this.getGmailAvatar(this.currentUser.email);
+        const username = this.userData?.username || this.currentUser?.email?.split('@')[0] || 'User';
+        document.getElementById('h-name').textContent = username;
+        
+        const avatarUrl = this.currentUser?.email ? this.getGmailAvatar(this.currentUser.email) : null;
         this.updateAvatarDisplay(avatarUrl);
         
         UI.updateAll();
         App.newTest();
-        UI.showToast(`Welcome, ${this.userData.username}!`, '👋');
+        UI.showToast(`Welcome, ${username}!`, '👋');
     }
+
     
     // ============ GET USER DATA ============
     static getUserData() {
