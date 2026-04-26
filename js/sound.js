@@ -6,7 +6,7 @@ class Sound {
     
     // Initialize
     static init() {
-        this.muted = Storage.loadMuted();
+        this.muted = FirebaseService.loadMuted();
         this.updateMuteButton();
     }
     
