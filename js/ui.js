@@ -149,13 +149,19 @@ class UI {
         setText('#tab-profile .p-grid > div:nth-child(2) .sec-head', t('badge_collection'));
         setText('#tab-profile > .panel + .ad-slot + .panel .sec-head', t('rank_progression'));
         document.querySelectorAll('.ad-slot.ad-banner').forEach((el) => {
-            el.textContent = t('ad_banner');
+            if (!el.children.length) {
+                el.textContent = t('ad_banner');
+            }
         });
         document.querySelectorAll('.ad-slot.ad-sidebar').forEach((el) => {
-            el.textContent = t('ad_tower');
+            if (!el.children.length) {
+                el.textContent = t('ad_tower');
+            }
         });
         document.querySelectorAll('.ad-slot.ad-inline').forEach((el) => {
-            el.textContent = t('ad_wide');
+            if (!el.children.length) {
+                el.textContent = t('ad_wide');
+            }
         });
     }
 
