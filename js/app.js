@@ -317,6 +317,7 @@ class App {
             this.setMode('practice');
         }
         
+        UI.renderSideRail?.();
         setTimeout(() => this.focusCurrentTextBox(), 200);
     }
     
@@ -337,6 +338,7 @@ class App {
         
         TypingEngine.state.paused = false;
         TypingEngine.hidePause();
+        UI.renderSideRail?.();
         this.newTest();
     }
     
@@ -346,6 +348,7 @@ class App {
         document.querySelectorAll('#mode-practice .tb-group:first-child .tb-btn')
             .forEach(b => b.classList.remove('active'));
         if (btn) btn.classList.add('active');
+        UI.renderSideRail?.();
         this.newTest();
     }
     
@@ -353,6 +356,7 @@ class App {
         TypingEngine.state.duration = dur;
         document.querySelectorAll('[id^="d"]').forEach(b => b.classList.remove('active'));
         if (btn) btn.classList.add('active');
+        UI.renderSideRail?.();
         this.newTest();
     }
 
@@ -365,6 +369,7 @@ class App {
         UI.syncLanguageSelects?.(nextLanguage);
         UI.applyLanguage?.();
         UI.updateAll?.();
+        UI.renderSideRail?.();
 
         if (window.Multiplayer?.room) {
             Multiplayer.updateRoomDisplay?.();

@@ -118,7 +118,7 @@ body {
 }
 
 .app {
-    max-width: 1020px;
+    max-width: 1220px;
     margin: 0 auto;
     padding: 40px 16px 24px;
     position: relative;
@@ -145,6 +145,109 @@ body {
 .content-col {
     flex: 1;
     min-width: 0;
+}
+
+.side-rail {
+    width: 280px;
+    flex: 0 0 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.side-panel {
+    margin-bottom: 0;
+}
+
+.rail-stack {
+    display: grid;
+    gap: 10px;
+}
+
+.rail-kpi {
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+}
+
+.rail-kpi-label {
+    display: block;
+    color: var(--muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 5px;
+}
+
+.rail-kpi-value {
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.rail-goal-copy,
+.rail-meta,
+.rail-feature-sub {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.rail-progress {
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    margin: 14px 0 10px;
+}
+
+.rail-progress-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: inherit;
+    transition: width 0.35s ease;
+}
+
+.rail-feature {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.rail-feature-badge {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--accent2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    flex: 0 0 42px;
+}
+
+.rail-feature-badge--accent {
+    color: var(--warning);
+}
+
+.rail-feature-name {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 3px;
+}
+
+.rail-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 14px 0;
 }
 
 /* ============ HEADER ============ */

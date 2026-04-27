@@ -173,6 +173,7 @@ class UI {
         this.renderRankedHistory();
         this.renderLeaderboard();
         this.renderProfile();
+        this.renderSideRail();
     }
 
     // Render stats bar (top 4 cards)
@@ -410,5 +411,69 @@ class UI {
             role.textContent = '';
             role.style.display = 'none';
         }
+    }
+
+    static renderSideRail() {
+        const data = Auth.getUserData() || {};
+        const currentRank = getRank(data.bestWpm || 0);
+        const nextRank = RANKS.find((rank) => rank.min > (data.bestWpm || 0)) || null;
+        const testsDone = Number(data.totalTests || 0);
+        const dailyGoal = 5;
+        const goalProgress = Math.min(100, Math.round((testsDone / dailyGoal) * 100));
+        const badgeCollection = getBadgeCollection(data);
+        const nextBadge = badgeCollection.find((badge) => !badge.unlocked) || null;
+
+        const languageMap = {
+            en: 'English',
+            id: 'Indonesian',
+            es: 'Spanish',
+            fr: 'French',
+            de: 'German',
+            it: 'Italian',
+            pt: 'Portuguese',
+            nl: 'Dutch',
+            tr: 'Turkish',
+            sv: 'Swedish',
+            pl: 'Polish',
+            ro: 'Romanian'
+        };
+
+        const setText = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        };
+
+        setText('rail-session-title', 'Session Snapshot');
+        setText('rail-mode-label', 'Mode');
+        setText('rail-language-label', 'Language');
+        setText('rail-duration-label', 'Duration');
+        setText('rail-mode-value', App.currentTab === 'multiplayer' ? 'Multiplayer' : (App.currentMode === 'ranked' ? 'Ranked' : 'Practice'));
+        setText('rail-language-value', languageMap[App.currentLanguage] || 'English');
+        setText('rail-duration-value', `${TypingEngine.state.duration || 30}s`);
+
+        setText('rail-goal-title', 'Daily Goal');
+        setText('rail-goal-copy', 'Finish 5 tests today to keep your typing rhythm warm.');
+        setText('rail-goal-meta', `${Math.min(testsDone, dailyGoal)} / ${dailyGoal} tests completed`);
+        const goalFill = document.getElementById('rail-goal-fill');
+        if (goalFill) goalFill.style.width = `${goalProgress}%`;
+
+        setText('rail-next-title', 'Next Milestone');
+        setText('rail-rank-badge', nextRank ? nextRank.icon : currentRank.icon);
+        setText('rail-rank-name', nextRank ? getRankLabel(nextRank.name) : getRankLabel(currentRank.name));
+        setText(
+            'rail-rank-sub',
+            nextRank
+                ? `${nextRank.min} WPM needed for your next rank`
+                : 'You have reached the highest visible rank tier'
+        );
+
+        setText('rail-badge-icon', nextBadge ? nextBadge.tag : 'ALL');
+        setText('rail-badge-name', nextBadge ? nextBadge.name : 'Badge Collection Complete');
+        setText(
+            'rail-badge-sub',
+            nextBadge
+                ? 'Keep playing to unlock your next badge milestone'
+                : 'You have unlocked every currently visible badge'
+        );
     }
 }

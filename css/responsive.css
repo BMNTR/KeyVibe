@@ -5,6 +5,7 @@
         min-height: auto;
         justify-content: flex-start;
     }
+    .side-rail { display: none; }
     
     .header { gap: 6px; margin-bottom: 16px; }
     .logo-icon { width: 30px; height: 30px; font-size: 14px; border-radius: 8px; }
@@ -181,6 +182,7 @@
         min-height: auto;
         justify-content: flex-start;
     }
+    .side-rail { display: none; }
     .ad-sidebar { width: 120px; }
     .main-layout { gap: 12px; }
     .stats-row { gap: 8px; }
