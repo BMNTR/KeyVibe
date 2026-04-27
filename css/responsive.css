@@ -172,11 +172,17 @@
 
 /* ============ TABLET ============ */
 @media (min-width: 769px) and (max-width: 1024px) {
+    .app { padding-top: 28px; }
     .ad-sidebar { width: 120px; }
     .main-layout { gap: 12px; }
     .stats-row { gap: 8px; }
     .stat-card { padding: 12px 8px; }
     .stat-val { font-size: 19px; }
+}
+
+/* ============ LARGE DESKTOP ============ */
+@media (min-width: 1280px) {
+    .app { padding-top: 52px; }
 }
 
 /* ============ LANDSCAPE MOBILE ============ */

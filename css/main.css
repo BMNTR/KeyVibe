@@ -120,7 +120,7 @@ body {
 .app {
     max-width: 1020px;
     margin: 0 auto;
-    padding: 20px 16px;
+    padding: 40px 16px 24px;
     position: relative;
 }
 
