@@ -1,6 +1,10 @@
 /* ============ MOBILE RESPONSIVE ============ */
 @media (max-width: 768px) {
     .app { padding: 12px 8px; }
+    .game-app {
+        min-height: auto;
+        justify-content: flex-start;
+    }
     
     .header { gap: 6px; margin-bottom: 16px; }
     .logo-icon { width: 30px; height: 30px; font-size: 14px; border-radius: 8px; }
@@ -173,6 +177,10 @@
 /* ============ TABLET ============ */
 @media (min-width: 769px) and (max-width: 1024px) {
     .app { padding-top: 28px; }
+    .game-app {
+        min-height: auto;
+        justify-content: flex-start;
+    }
     .ad-sidebar { width: 120px; }
     .main-layout { gap: 12px; }
     .stats-row { gap: 8px; }
@@ -183,6 +191,10 @@
 /* ============ LARGE DESKTOP ============ */
 @media (min-width: 1280px) {
     .app { padding-top: 52px; }
+    .game-app {
+        min-height: 100vh;
+        justify-content: center;
+    }
 }
 
 /* ============ LANDSCAPE MOBILE ============ */

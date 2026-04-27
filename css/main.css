@@ -124,6 +124,13 @@ body {
     position: relative;
 }
 
+.game-app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
 .legal-app {
     max-width: 920px;
 }
@@ -556,6 +563,10 @@ body {
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
+}
+
+.game-app .site-footer {
+    margin-top: 36px;
 }
 
 .site-footer-copy {
