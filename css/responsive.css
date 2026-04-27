@@ -145,6 +145,29 @@
     }
     .theme-panel { min-width: 150px; }
     .theme-option { padding: 6px 8px; font-size: 10px; min-height: 34px; }
+
+    .site-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        margin-top: 20px;
+    }
+
+    .site-footer-copy,
+    .site-footer-links a {
+        font-size: 11px;
+    }
+
+    .legal-panel {
+        padding: 16px;
+    }
+
+    .legal-title {
+        font-size: 22px;
+    }
+
+    .legal-panel p {
+        font-size: 13px;
+    }
 }
 
 /* ============ TABLET ============ */
