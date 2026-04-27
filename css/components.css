@@ -17,6 +17,17 @@
     margin-bottom: 14px;
 }
 
+.result-emoji {
+    font-size: 28px;
+    margin-bottom: 6px;
+}
+
+.result-combo-info {
+    font-size: 11px;
+    color: var(--muted);
+    margin: 4px 0;
+}
+
 /* ============ TOOLBAR ============ */
 .toolbar {
     display: flex;
@@ -343,7 +354,7 @@
 }
 
 .modal-logo { font-size: 36px; margin-bottom: 8px; }
-.modal-logo img { width: 120px; height: auto; }
+.modal-logo-img { width: 120px; height: auto; }
 
 .modal-title { font-size: 24px; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px; }
 .modal-title span { color: var(--accent); }
@@ -654,6 +665,10 @@
     font-size: 18px;
     font-weight: 700;
 }
+
+.res-stat-success { color: var(--success); }
+.res-stat-accent { color: var(--accent); }
+.res-stat-danger { color: var(--danger); }
 
 .res-stat-label { font-size: 9px; color: var(--muted); margin-top: 2px; }
 
