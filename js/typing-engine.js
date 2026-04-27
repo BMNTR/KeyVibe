@@ -26,15 +26,21 @@ class TypingEngine {
     static idleTimeout = null;
     static lastResult = { wpm: 0, acc: 0, combo: 0 };
     static currentMode = 'practice';
+    static currentLanguage = 'en';
+    static sharedWords = null;
     
     // Generate word pool
     static getWordPool() {
         const textBoxId = this.currentTextBoxId;
         
         let pool;
-        if (this.currentMode === 'ranked') pool = WORDS.medium;
-        else if (textBoxId === 'mp-text-box') pool = WORDS.medium;
-        else pool = WORDS[this.state.diff];
+        if (this.currentMode === 'ranked') pool = getWordsForLanguage(this.currentLanguage, 'medium');
+        else if (textBoxId === 'mp-text-box') pool = getWordsForLanguage(this.currentLanguage, 'medium');
+        else pool = getWordsForLanguage(this.currentLanguage, this.state.diff);
+        
+        if (textBoxId === 'mp-text-box' && Array.isArray(this.sharedWords) && this.sharedWords.length) {
+            return [...this.sharedWords];
+        }
         
         const out = [];
         while (out.length < 100) {
@@ -98,11 +104,10 @@ class TypingEngine {
             const sp = document.createElement('span');
             sp.className = 'char untyped sp';
             sp.innerHTML = '&nbsp;';
-            wg.appendChild(sp);
-            cSpans.push(sp);
-            
-            this.wordSpans.push({ group: wg, chars: cSpans, spaceSpan: sp });
             container.appendChild(wg);
+            container.appendChild(sp);
+
+            this.wordSpans.push({ group: wg, chars: [...cSpans, sp], letterChars: cSpans, spaceSpan: sp });
         }
         
         // Highlight first word with cursor
@@ -116,7 +121,7 @@ class TypingEngine {
         this.updateProgressBar(textBoxId, 0);
         this.updateHint(textBoxId);
         this.updateComboDisplay(textBoxId);
-        this.updateLiveStats(textBoxId, '—', '—');
+        this.updateLiveStats(textBoxId, '--', '--');
     }
     
     // Start typing
@@ -132,7 +137,7 @@ class TypingEngine {
         
         const hintId = this.getHintId();
         const hintEl = document.getElementById(hintId);
-        if (hintEl) hintEl.textContent = 'Tab to restart';
+        if (hintEl) hintEl.textContent = t('hint_restart');
         
         Sound.raceStart();
         
@@ -198,8 +203,8 @@ class TypingEngine {
             this.state.correctCount++;
             this.state.charIdx++;
             
-            // COMBO SYSTEM
-            if (this.state.lastCorrect || this.state.combo === 0) {
+            // COMBO SYSTEM - only increment if last char was also correct
+            if (this.state.lastCorrect) {
                 this.state.combo++;
                 if (this.state.combo > this.state.maxCombo) {
                     this.state.maxCombo = this.state.combo;
@@ -207,12 +212,16 @@ class TypingEngine {
                 this.updateComboDisplay(this.currentTextBoxId);
                 
                 // Combo milestones
-                if (this.state.combo === 10) this.showComboPopup('10 COMBO! 🔥');
-                else if (this.state.combo === 20) this.showComboPopup('20 STREAK! ⚡');
-                else if (this.state.combo === 30) this.showComboPopup('30 ON FIRE! 💥');
-                else if (this.state.combo === 50) this.showComboPopup('50 GODLIKE! 👑');
+                if (this.state.combo === 10) this.showComboPopup(t('combo_popup_10'));
+                else if (this.state.combo === 20) this.showComboPopup(t('combo_popup_20'));
+                else if (this.state.combo === 30) this.showComboPopup(t('combo_popup_30'));
+                else if (this.state.combo === 50) this.showComboPopup(t('combo_popup_50'));
                 
                 if (this.state.combo % 10 === 0) Sound.combo(this.state.combo);
+            } else {
+                // First correct after error - reset combo to 1
+                this.state.combo = 1;
+                this.updateComboDisplay(this.currentTextBoxId);
             }
             this.state.lastCorrect = true;
             Sound.keyPress();
@@ -274,6 +283,7 @@ class TypingEngine {
     // Handle backspace
     static backspace() {
         if (this.state.wordIdx >= this.wordSpans.length) return;
+        if (this.currentMode === 'ranked') return;
         
         if (this.state.charIdx > 0) {
             this.state.charIdx--;
@@ -311,6 +321,8 @@ class TypingEngine {
         const total = this.state.correctCount + this.state.errorCount;
         const acc = total > 0 ? Math.round(this.state.correctCount / total * 100) : 100;
         const prevBest = Auth.getUserData().bestWpm || 0;
+        const prevXp = Auth.getUserData().xp || 0;
+        const prevLevel = getLevelFromXp(prevXp);
         
         // Update user data
         const userData = Auth.getUserData();
@@ -324,6 +336,7 @@ class TypingEngine {
         const comboBonus = Math.floor(this.state.maxCombo / 10) * 5;
         const xpGained = Math.round(wpm * 0.6 + acc * 0.4) + comboBonus;
         userData.xp = (userData.xp || 0) + xpGained;
+        const nextLevel = getLevelFromXp(userData.xp);
         
         if (this.state.maxCombo > (userData.maxCombo || 0)) {
             userData.maxCombo = this.state.maxCombo;
@@ -354,34 +367,40 @@ class TypingEngine {
 
         // Save to Supabase
         Auth.saveUserData();
+
+        if (this.currentMode === 'multiplayer') {
+            UI.updateAll();
+            Multiplayer.handleLocalFinish({ wpm, acc });
+            return;
+        }
         
         // Store and show result
         this.lastResult = { wpm, acc, combo: this.state.maxCombo };
         UI.updateAll();
-        this.showResult(wpm, acc, this.state.errorCount, this.state.correctCount, prevBest, xpGained);
+        this.showResult(wpm, acc, this.state.errorCount, this.state.correctCount, prevBest, xpGained, prevLevel, nextLevel);
     }
     
     // Show result overlay
-    static showResult(wpm, acc, errors, correct, prevBest, xpGained) {
+    static showResult(wpm, acc, errors, correct, prevBest, xpGained, prevLevel, nextLevel) {
         document.getElementById('res-wpm').textContent = wpm;
         document.getElementById('r-acc').textContent = acc + '%';
         document.getElementById('r-chars').textContent = correct;
         document.getElementById('r-err').textContent = errors;
         
         document.getElementById('res-emoji').textContent = 
-            wpm >= 150 ? '🚀' : wpm >= 100 ? '⚡' : wpm >= 70 ? '🎉' : wpm >= 50 ? '💪' : '🌱';
-        
-        const comboStr = this.state.maxCombo >= 50 ? ' | Max Combo: 👑' + this.state.maxCombo :
-                         this.state.maxCombo >= 20 ? ' | Combo: 🔥' + this.state.maxCombo : '';
-        
+            wpm >= 150 ? t('result_tier_top') : wpm >= 100 ? t('result_tier_fast') : wpm >= 70 ? t('result_tier_good') : wpm >= 50 ? t('result_tier_solid') : t('result_tier_start');
+
+        const comboStr = this.state.maxCombo >= 20 ? t('result_combo_suffix', { combo: this.state.maxCombo }) : '';
+        const levelStr = nextLevel > prevLevel ? t('result_level_up_suffix', { level: nextLevel }) : '';
+
         document.getElementById('r-msg').textContent = 
             wpm > prevBest && prevBest > 0 ?
-            `🎊 New personal best! +${xpGained} XP${comboStr}` :
-            `+${xpGained} XP earned${comboStr} — keep going!`;
-        
+            t('result_new_best', { xp: xpGained, combo: comboStr, level: levelStr }) :
+            t('result_xp_earned', { xp: xpGained, combo: comboStr, level: levelStr });
+
         document.getElementById('r-combo-info').textContent = 
             this.state.maxCombo >= 10 ?
-            `Best combo streak: ${this.state.maxCombo} | Combo bonus: +${Math.floor(this.state.maxCombo / 10) * 5} XP` : '';
+            t('result_combo_bonus', { combo: this.state.maxCombo, bonus: Math.floor(this.state.maxCombo / 10) * 5 }) : '';
         
         document.getElementById('result-overlay').classList.add('show');
     }
@@ -420,7 +439,8 @@ class TypingEngine {
     
     static resetIdleTimer() {
         clearTimeout(this.idleTimeout);
-        if (this.state.running && !this.state.paused) {
+        // Don't pause in ranked or multiplayer modes
+        if (this.state.running && !this.state.paused && this.currentMode === 'practice') {
             this.idleTimeout = setTimeout(() => this.showPause(), 8000);
         }
     }
@@ -466,12 +486,12 @@ class TypingEngine {
     
     static getTimerPillId() {
         return this.currentTextBoxId === 'r-text-box' ? 'ranked-timer-pill' :
-               this.currentTextBoxId === 'mp-text-box' ? 'timer-pill' : 'timer-pill';
+               this.currentTextBoxId === 'mp-text-box' ? 'mp-timer-pill' : 'timer-pill';
     }
     
     static updateTimerDisplay(textBoxId, value) {
         const pillId = textBoxId === 'r-text-box' ? 'ranked-timer-pill' :
-                       textBoxId === 'mp-text-box' ? 'timer-pill' : 'timer-pill';
+                       textBoxId === 'mp-text-box' ? 'mp-timer-pill' : 'timer-pill';
         const pill = document.getElementById(pillId);
         if (pill) {
             pill.textContent = typeof value === 'number' ? value + 's' : value;
@@ -480,7 +500,7 @@ class TypingEngine {
     
     static updateProgressBar(textBoxId, percent) {
         const progId = textBoxId === 'r-text-box' ? 'r-prog' :
-                       textBoxId === 'mp-text-box' ? 'prog' : 'prog';
+                       textBoxId === 'mp-text-box' ? 'mp-prog' : 'prog';
         const prog = document.getElementById(progId);
         if (prog) prog.style.width = percent + '%';
     }
@@ -491,8 +511,8 @@ class TypingEngine {
         const hint = document.getElementById(hintId);
         if (hint) {
             hint.textContent = textBoxId === 'mp-text-box' ? 
-                'Race started! Type as fast as you can!' : 
-                'Click or tap the text box to start typing';
+                t('match_live') : 
+                t('hint_start');
         }
     }
     
@@ -504,22 +524,22 @@ class TypingEngine {
         
         if (this.state.combo >= 10) {
             cc.classList.add('active');
-            cc.textContent = '🔥 x' + this.state.combo;
+            cc.textContent = `${t('combo_label').toUpperCase()} x${this.state.combo}`;
             if (this.state.combo >= 30) {
                 cc.classList.add('fire');
                 cc.classList.remove('godlike');
             }
             if (this.state.combo >= 50) {
                 cc.classList.add('godlike');
-                cc.textContent = '👑 x' + this.state.combo;
+                cc.textContent = `${t('combo_tier_godlike').toUpperCase()} x${this.state.combo}`;
             }
         } else if (this.state.combo > 0) {
             cc.classList.add('active');
             cc.classList.remove('fire', 'godlike');
-            cc.textContent = '🔥 x' + this.state.combo;
+            cc.textContent = `${t('combo_label').toUpperCase()} x${this.state.combo}`;
         } else {
             cc.classList.remove('active', 'fire', 'godlike');
-            cc.textContent = '🔥 x0';
+            cc.textContent = `${t('combo_label').toUpperCase()} x0`;
         }
     }
     
@@ -535,3 +555,4 @@ class TypingEngine {
         if (accEl) accEl.textContent = acc;
     }
 }
+

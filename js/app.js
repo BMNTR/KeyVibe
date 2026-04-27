@@ -3,34 +3,44 @@
 class App {
     static currentMode = 'practice';
     static currentTab = 'practice';
+    static currentLanguage = 'en';
     
     // ============ INITIALIZATION ============
-    static init() {
-        // Firebase di-init di firebase.js
+    static async init() {
         Sound.init();
         UI.buildThemePanel();
-        
-        // Load saved theme
-        const savedTheme = FirebaseService.loadTheme();
+        UI.buildLanguageSelects?.();
+        const savedTheme = SupabaseService.loadTheme();
+        const savedLanguage = SupabaseService.loadLanguage();
         this.setTheme(savedTheme);
-        
-        // Create hidden input for mobile keyboard trigger
+        this.currentLanguage = isValidLanguage(savedLanguage) ? savedLanguage : 'en';
+        TypingEngine.currentLanguage = this.currentLanguage;
+        UI.buildLanguageSelects?.();
         this.createMobileInput();
-        
-        // Set up event listeners
         this.setupEventListeners();
+        await Auth.init();
         
-        // Init Auth listener
-        Auth.init();
-        
-        // Show login modal first, auth listener will handle auto-login
-        document.getElementById('login-modal').style.display = 'flex';
+        const loginModal = document.getElementById('login-modal');
+        if (loginModal) {
+            loginModal.style.display = Auth.currentUser ? 'none' : 'flex';
+        }
+
         UI.updateAll();
-        this.newTest();
-        setTimeout(() => this.focusCurrentTextBox(), 500);
+        UI.updateHeaderRole?.();
+        UI.syncLanguageSelects?.(this.currentLanguage);
+        UI.applyLanguage?.();
         
-        console.log('🎹 KeyVibe Ready!');
-        console.log('Type your vibe. Race your tribe.');
+        // WAJIB: init typing engine dulu
+        this.currentMode = 'practice';
+        TypingEngine.currentMode = 'practice';
+        this.setMode('practice');  // Ensure mode-practice div is visible
+        this.newTest();
+        
+        setTimeout(() => {
+            this.focusCurrentTextBox();
+        }, 500);
+        
+        console.log('KeyVibe Ready!');
     }
     
     // Create hidden input for mobile keyboard
@@ -68,6 +78,10 @@ class App {
             
             const char = val[val.length - 1];
             e.target.value = '';
+
+            if (this.currentTab === 'multiplayer' && !Multiplayer.canAcceptTyping()) {
+                return;
+            }
             
             if (TypingEngine.state.paused) {
                 TypingEngine.resumePause();
@@ -154,8 +168,6 @@ class App {
         });
         
         document.getElementById('mp-text-box')?.addEventListener('click', (e) => {
-            if (Multiplayer.room && Multiplayer.room.started) return;
-            
             TypingEngine.currentTextBoxId = 'mp-text-box';
             this.currentMode = 'multiplayer';
             TypingEngine.currentMode = 'multiplayer';
@@ -215,6 +227,10 @@ class App {
             
             if (!isMobile && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1) {
                 e.preventDefault();
+
+                if (this.currentTab === 'multiplayer' && !Multiplayer.canAcceptTyping()) {
+                    return;
+                }
                 
                 if (TypingEngine.state.paused) {
                     TypingEngine.resumePause();
@@ -233,6 +249,9 @@ class App {
             
             if (!isMobile && e.key === 'Backspace') {
                 e.preventDefault();
+                if (this.currentTab === 'multiplayer' && !Multiplayer.canAcceptTyping()) {
+                    return;
+                }
                 TypingEngine.backspace();
             }
         });
@@ -280,12 +299,7 @@ class App {
         if (btn) {
             btn.classList.add('active');
         } else {
-            document.querySelectorAll('.nav-btn').forEach(b => {
-                const text = b.textContent.trim().toLowerCase();
-                if (text.includes(tab.slice(0, 4))) {
-                    b.classList.add('active');
-                }
-            });
+            document.querySelector(`.nav-btn[data-tab="${tab}"]`)?.classList.add('active');
         }
         
         if (tab === 'leaderboard') UI.renderLeaderboard();
@@ -341,6 +355,39 @@ class App {
         if (btn) btn.classList.add('active');
         this.newTest();
     }
+
+    static setLanguage(language) {
+        const nextLanguage = isValidLanguage(language) ? language : 'en';
+        this.currentLanguage = nextLanguage;
+        TypingEngine.currentLanguage = nextLanguage;
+        SupabaseService.saveLanguage(nextLanguage);
+        UI.buildLanguageSelects?.();
+        UI.syncLanguageSelects?.(nextLanguage);
+        UI.applyLanguage?.();
+        UI.updateAll?.();
+
+        if (window.Multiplayer?.room) {
+            Multiplayer.updateRoomDisplay?.();
+            Multiplayer.refreshStartButton?.();
+            const mpHint = document.getElementById('mp-hint');
+            const mpStatus = document.getElementById('mp-status');
+            if (Multiplayer.room.started) {
+                if (mpHint) mpHint.textContent = t('match_live');
+            } else {
+                if (mpHint) mpHint.textContent = t('waiting_match');
+                if (mpStatus && (Multiplayer.room.players || []).length <= 1) {
+                    mpStatus.textContent = t('waiting_another_player');
+                }
+            }
+        }
+
+        if (this.currentTab === 'multiplayer' && Multiplayer.room?.started) {
+            UI.showToast(t('language_next_race'), '*');
+            return;
+        }
+
+        this.newTest();
+    }
     
     static setTheme(theme) {
         if (theme === 'default') {
@@ -348,7 +395,10 @@ class App {
         } else {
             document.documentElement.setAttribute('data-theme', theme);
         }
-        FirebaseService.saveTheme(theme);
+        SupabaseService.saveTheme(theme);
+        UI.renderStatsBar?.();
+        UI.renderLeaderboard?.();
+        UI.renderProfile?.();
     }
     
     // ============ TEST CONTROL ============

@@ -1,5 +1,4 @@
 /* ============ CSS RESET & FONTS ============ */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700;800&display=swap');
 
 *, *::before, *::after {
     box-sizing: border-box;
@@ -84,6 +83,26 @@ body {
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+.skip-link {
+    position: absolute;
+    left: 16px;
+    top: -48px;
+    z-index: 1000;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+    top: 12px;
 }
 
 .app {

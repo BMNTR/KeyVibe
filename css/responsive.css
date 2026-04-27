@@ -65,14 +65,14 @@
     .modal-btn { font-size: 14px; padding: 12px; min-height: 44px; }
     .guest-link { font-size: 13px; padding: 12px; }
     
-    .share-card { padding: 18px 14px; }
-    .share-card .res-wpm { font-size: 34px; }
-    
     .mp-input { width: 130px; font-size: 13px; }
     .mp-code { font-size: 20px; }
     .mp-player-chip { font-size: 10px; padding: 5px 8px; }
     
+    .profile-editor { grid-template-columns: 1fr; gap: 12px; }
+    .profile-avatar-block { align-items: center; }
     .p-grid { grid-template-columns: 1fr; gap: 12px; }
+    .badge-wrap { grid-template-columns: 1fr; }
     .lb-table th, .lb-table td { padding: 6px 4px; font-size: 10px; }
     
     .theme-switcher { bottom: 10px; right: 10px; }

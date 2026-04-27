@@ -6,7 +6,18 @@ class Sound {
     
     // Initialize
     static init() {
-        this.muted = SupabaseService.loadMuted();
+        // Safe initialization - use try/catch to handle SupabaseService not available yet
+        try {
+            if (typeof SupabaseService !== 'undefined' && SupabaseService.loadMuted) {
+                this.muted = SupabaseService.loadMuted();
+            } else {
+                // Fallback to localStorage if SupabaseService not ready
+                this.muted = localStorage.getItem('keyvibe_muted') === '1';
+            }
+        } catch (e) {
+            console.warn('Sound.init() - SupabaseService not ready, using fallback');
+            this.muted = localStorage.getItem('keyvibe_muted') === '1';
+        }
         this.updateMuteButton();
     }
     

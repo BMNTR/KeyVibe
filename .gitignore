@@ -1,0 +1,36 @@
+# Local private overrides
+js/local-config.js
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Dependencies and build output
+node_modules/
+dist/
+build/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.suo
+*.user
+*.tmp
+*.temp
+
+# Runtime clutter
+*.pid
+*.seed
+*.stackdump
