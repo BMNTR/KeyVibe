@@ -413,6 +413,27 @@ class UI {
         }
     }
 
+    static buildTrendPath(points, width, height, minValue, maxValue) {
+        if (!points.length) return '';
+        const safeMax = Math.max(maxValue, minValue + 1);
+        return points.map((value, index) => {
+            const x = points.length === 1 ? width / 2 : (index / (points.length - 1)) * width;
+            const normalized = (value - minValue) / (safeMax - minValue);
+            const y = height - (normalized * (height - 12)) - 6;
+            return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+        }).join(' ');
+    }
+
+    static buildTrendDots(points, width, height, minValue, maxValue, color) {
+        const safeMax = Math.max(maxValue, minValue + 1);
+        return points.map((value, index) => {
+            const x = points.length === 1 ? width / 2 : (index / (points.length - 1)) * width;
+            const normalized = (value - minValue) / (safeMax - minValue);
+            const y = height - (normalized * (height - 12)) - 6;
+            return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="3" fill="${color}" />`;
+        }).join('');
+    }
+
     static renderSideRail() {
         const data = Auth.getUserData() || {};
         const currentRank = getRank(data.bestWpm || 0);
@@ -475,5 +496,34 @@ class UI {
                 ? 'Keep playing to unlock your next badge milestone'
                 : 'You have unlocked every currently visible badge'
         );
+
+        const chart = document.getElementById('rail-chart');
+        const chartEmpty = document.getElementById('rail-chart-empty');
+        const practiceHistory = (data.history || []).filter((entry) => entry.mode !== 'ranked').slice(-8);
+
+        if (chart && chartEmpty) {
+            if (!practiceHistory.length) {
+                chart.innerHTML = '';
+                chartEmpty.style.display = 'flex';
+            } else {
+                const width = 260;
+                const height = 120;
+                const wpmPoints = practiceHistory.map((entry) => Number(entry.wpm || 0));
+                const accPoints = practiceHistory.map((entry) => Number(entry.acc || 0));
+                const maxWpm = Math.max(40, ...wpmPoints);
+                const wpmPath = this.buildTrendPath(wpmPoints, width, height, 0, maxWpm);
+                const accPath = this.buildTrendPath(accPoints, width, height, 0, 100);
+                const accent = getThemeColor();
+                const accentTwo = getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim() || '#4fc3a1';
+
+                chart.innerHTML = `
+                    <path d="${accPath}" fill="none" stroke="${accentTwo}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"></path>
+                    <path d="${wpmPath}" fill="none" stroke="${accent}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    ${this.buildTrendDots(accPoints, width, height, 0, 100, accentTwo)}
+                    ${this.buildTrendDots(wpmPoints, width, height, 0, maxWpm, accent)}
+                `;
+                chartEmpty.style.display = 'none';
+            }
+        }
     }
 }
